@@ -3,6 +3,7 @@ from flask_mysqldb import MySQL
 import MySQLdb.cursors
 import re
 from werkzeug.security import generate_password_hash, check_password_hash
+from functools import wraps
 
 app = Flask(__name__)
 
@@ -65,10 +66,12 @@ def login():
             session['loggedin'] = True
             session['id'] = account['user_id']
             session['username'] = account['username']
-            return 'Logged in successfully!'
+            session['is_admin'] = account['is_admin']
+            return redirect(url_for('profile'))
         else:
-            msg = 'Incorrect username/password!'
+            return 'Incorrect username/password!'
     return render_template('login.html', msg=msg)
+
 
 @app.route('/logout')
 def logout():
@@ -76,6 +79,96 @@ def logout():
     session.pop('id', None)
     session.pop('username', None)
     return redirect(url_for('login'))
+
+
+@app.route('/update_password', methods=['GET', 'POST'])
+def update_password():
+    msg = ''
+    if 'loggedin' in session:
+        if request.method == 'POST' and 'old_password' in request.form and 'new_password' in request.form:
+            old_password = request.form['old_password']
+            new_password = request.form['new_password']
+
+            cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+            cursor.execute('SELECT * FROM Users WHERE user_id = %s', (session['id'],))
+            account = cursor.fetchone()
+
+            if account and check_password_hash(account['password'], old_password):
+                new_password_hashed = generate_password_hash(new_password)
+                cursor.execute('UPDATE Users SET password = %s WHERE user_id = %s', (new_password_hashed, session['id']))
+                mysql.connection.commit()
+                msg = 'Password updated successfully!'
+            else:
+                msg = 'Incorrect old password!'
+        return render_template('update_password.html', msg=msg)
+    return redirect(url_for('login'))
+
+@app.route('/profile')
+def profile():
+    if 'loggedin' in session:
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute('SELECT * FROM Users WHERE user_id = %s', (session['id'],))
+        account = cursor.fetchone()
+        return render_template('profile.html', account=account)
+    return redirect(url_for('login'))
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'loggedin' not in session or not session.get('is_admin'):
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+@app.route('/admin')
+@admin_required
+def admin_dashboard():
+    return 'Welcome to the admin dashboard!'
+
+@app.route('/hotels')
+def hotels():
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute('SELECT * FROM Hotels')
+    hotels = cursor.fetchall()
+    return render_template('hotels.html', hotels=hotels)
+
+@app.route('/hotels/<int:hotel_id>')
+def hotel_details(hotel_id):
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute('SELECT * FROM Hotels WHERE hotel_id = %s', (hotel_id,))
+    hotel = cursor.fetchone()
+    cursor.execute('SELECT * FROM Rooms WHERE hotel_id = %s', (hotel_id,))
+    rooms = cursor.fetchall()
+    return render_template('hotel_details.html', hotel=hotel, rooms=rooms)
+
+@app.route('/book_room/<int:hotel_id>', methods=['GET', 'POST'])
+def book_room(hotel_id):
+    if 'loggedin' not in session:
+        return redirect(url_for('login'))
+
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute('SELECT * FROM Hotels WHERE hotel_id = %s', (hotel_id,))
+    hotel = cursor.fetchone()
+    cursor.execute('SELECT * FROM Rooms WHERE hotel_id = %s', (hotel_id,))
+    rooms = cursor.fetchall()
+
+    if request.method == 'POST' and 'room' in request.form and 'check_in_date' in request.form and 'check_out_date' in request.form:
+        room_id = request.form['room']
+        check_in_date = request.form['check_in_date']
+        check_out_date = request.form['check_out_date']
+
+        # Calculate total price (for simplicity, using off-peak season price)
+        cursor.execute('SELECT price FROM Rooms WHERE room_id = %s', (room_id,))
+        room = cursor.fetchone()
+        total_price = room['price']
+
+        cursor.execute('INSERT INTO Bookings (user_id, room_id, check_in_date, check_out_date, total_price, status) VALUES (%s, %s, %s, %s, %s, %s)', 
+                       (session['id'], room_id, check_in_date, check_out_date, total_price, 'booked'))
+        mysql.connection.commit()
+        return 'Booking successful!'
+    
+    return render_template('book_room.html', hotel=hotel, rooms=rooms)
+
 
 if __name__ == '__main__':
     app.run(debug=True)
