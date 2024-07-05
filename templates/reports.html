@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Reports</title>
+</head>
+<body>
+    <h2>Admin Reports</h2>
+    
+    <h3>Monthly Sales</h3>
+    <ul>
+        {% for report in monthly_sales %}
+            <li>Month: {{ report['month'] }}, Sales: £{{ report['sales'] }}</li>
+        {% endfor %}
+    </ul>
+    
+    <h3>Sales for Each Hotel</h3>
+    <ul>
+        {% for report in hotel_sales %}
+            <li>Hotel ID: {{ report['hotel_id'] }}, Sales: £{{ report['sales'] }}</li>
+        {% endfor %}
+    </ul>
+    
+    <h3>Top Customers</h3>
+    <ul>
+        {% for customer in top_customers %}
+            <li>User ID: {{ customer['user_id'] }}, Total Spent: £{{ customer['total_spent'] }}</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

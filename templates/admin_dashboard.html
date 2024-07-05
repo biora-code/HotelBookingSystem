@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+</head>
+<body>
+    <h2>Welcome, Admin</h2>
+    <p><a href="{{ url_for('logout') }}">Logout</a></p>
+    
+    <h3>Hotels</h3>
+    <ul>
+        {% for hotel in hotels %}
+            <li>{{ hotel['name'] }}, City: {{ hotel['city'] }}, Capacity: {{ hotel['capacity'] }}</li>
+        {% endfor %}
+    </ul>
+    <a href="{{ url_for('add_hotel') }}">Add Hotel</a>
+    
+    <h3>Bookings</h3>
+    <ul>
+        {% for booking in bookings %}
+            <li>Booking ID: {{ booking['booking_id'] }}, User ID: {{ booking['user_id'] }}, Room ID: {{ booking['room_id'] }}, Check-in: {{ booking['check_in_date'] }}, Check-out: {{ booking['check_out_date'] }}, Status: {{ booking['status'] }}</li>
+        {% endfor %}
+    </ul>
+    
+    <h3>Users</h3>
+    <ul>
+        {% for user in users %}
+            <li>User ID: {{ user['user_id'] }}, Username: {{ user['username'] }}, Email: {{ user['email'] }}</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
