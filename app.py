@@ -70,13 +70,16 @@ def login():
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
         cursor.execute('SELECT * FROM Users WHERE username = %s', (username,))
         account = cursor.fetchone()
+        print(f"Account: {account}")
 
         if account:
             # Extract the hashed password from the database
             hashed_password_db = account['password'].encode('utf-8')
+            print(f"password: {password}")
+            print(f"Hashed password from DB: {hashed_password_db}")
 
             # Check if the hashed passwords match
-            if bcrypt.checkpw(password.encode('utf-8'), hashed_password_db):
+            if bcrypt.checkpw(password.encode('utf-8'), hashed_password_db): #
                 # Passwords match
                 session['loggedin'] = True
                 session['user_id'] = account['user_id']
@@ -137,7 +140,7 @@ def update_password():
 def profile():
     if 'loggedin' in session:
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        cursor.execute('SELECT * FROM Users WHERE user_id = %s', (session['id'],))
+        cursor.execute('SELECT * FROM Users WHERE user_id = %s', (session['user_id'],))
         account = cursor.fetchone()
         return render_template('profile.html', account=account)
     return redirect(url_for('login'))
@@ -326,8 +329,11 @@ def admin_dashboard():
     
     cursor.execute('SELECT * FROM Users')
     users = cursor.fetchall()
+
+    cursor.execute('SELECT * FROM Rooms')
+    rooms = cursor.fetchall()
     
-    return render_template('admin_dashboard.html', hotels=hotels, bookings=bookings, users=users)
+    return render_template('admin_dashboard.html', hotels=hotels, bookings=bookings, users=users, rooms = rooms)
 
 
 @app.route('/add_hotel', methods=['GET', 'POST'])

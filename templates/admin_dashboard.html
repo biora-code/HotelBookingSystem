@@ -30,5 +30,13 @@
             <li>User ID: {{ user['user_id'] }}, Username: {{ user['username'] }}, Email: {{ user['email'] }}</li>
         {% endfor %}
     </ul>
+
+    <h3>Rooms</h3>
+    <ul>
+        {% for room in roomss %}
+            <li>Room ID: {{ room['room_id'] }}, Hotel ID: {{ room['hotel_id'] }}, Status: {{ room['status'] }}, Room Type: {{ room['room_type'] }}</li>
+        {% endfor %}
+    </ul>
+    <!--<a href="{{ url_for('update_room_status') }}">Update Room</a>-->
 </body>
 </html>
