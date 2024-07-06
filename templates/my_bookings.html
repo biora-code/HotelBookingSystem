@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>My Bookings</title>
+  </head>
+  <body>
+    <h1>My Bookings</h1>
+    {% if bookings %}
+      <ul>
+        {% for booking in bookings %}
+          <li>
+            Booking ID: {{ booking.booking_id }} | Room ID: {{ booking.room_id }} | Check-in: {{ booking.check_in_date }} | Check-out: {{ booking.check_out_date }} | Status: {{ booking.status }}
+            {% if booking.status == 'booked' %}
+              <form action="{{ url_for('cancel_booking', booking_id=booking.booking_id) }}" method="post">
+                <button type="submit">Cancel Booking</button>
+              </form>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>No bookings found.</p>
+    {% endif %}
+  </body>
+</html>
+

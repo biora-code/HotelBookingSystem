@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, flash
 from flask_mysqldb import MySQL
 import MySQLdb.cursors
 import re
@@ -9,6 +9,8 @@ from io import BytesIO
 from flask import send_file
 from datetime import datetime
 from decimal import Decimal
+from flask_login import login_required
+import bcrypt
 
 app = Flask(__name__)
 
@@ -34,6 +36,8 @@ def register():
         password = request.form['password']
         email = request.form['email']
 
+        hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
         cursor.execute('SELECT * FROM Users WHERE username = %s', (username,))
         account = cursor.fetchone()
@@ -47,7 +51,7 @@ def register():
         elif not username or not password or not email:
             return 'Please fill out the form!'
         else:
-            cursor.execute('INSERT INTO Users (username, password, email) VALUES (%s, %s, %s)', (username, password, email))
+            cursor.execute('INSERT INTO Users (username, password, email) VALUES (%s, %s, %s)', (username, hashed_password, email))
             mysql.connection.commit()
             return 'You have successfully registered!'
 
@@ -56,30 +60,45 @@ def register():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    # Check if the user is already logged in
     if 'loggedin' in session:
         return redirect(url_for('hotels'))
 
     if request.method == 'POST' and 'username' in request.form and 'password' in request.form:
         username = request.form['username']
         password = request.form['password']
+
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        cursor.execute('SELECT * FROM Users WHERE username = %s AND password = %s', (username, password))
+        cursor.execute('SELECT * FROM Users WHERE username = %s', (username,))
         account = cursor.fetchone()
-        print(f"Account: {account}")
 
         if account:
-            # Create session data
-            session['loggedin'] = True
-            session['user_id'] = account['user_id']
-            session['username'] = account['username']
-            session['is_admin'] = account['is_admin'] 
+            # Extract the hashed password from the database
+            hashed_password_db = account['password'].encode('utf-8')
 
-            return redirect(url_for('hotels'))
+            # Check if the hashed passwords match
+            if bcrypt.checkpw(password.encode('utf-8'), hashed_password_db):
+                # Passwords match
+                session['loggedin'] = True
+                session['user_id'] = account['user_id']
+                session['username'] = account['username']
+                session['is_admin'] = account['is_admin']
+                return redirect(url_for('hotels'))
+            else:
+                # Passwords do not match
+                return 'Incorrect username/password!'
+
         else:
-            return 'Incorrect username/password!'
+            return 'User not found!'
     return render_template('login.html')
 
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'loggedin' not in session:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 
 @app.route('/logout')
@@ -89,28 +108,30 @@ def logout():
     session.pop('username', None)
     return redirect(url_for('login'))
 
-
 @app.route('/update_password', methods=['GET', 'POST'])
+@login_required
 def update_password():
-    msg = ''
     if 'loggedin' in session:
         if request.method == 'POST' and 'old_password' in request.form and 'new_password' in request.form:
             old_password = request.form['old_password']
             new_password = request.form['new_password']
 
             cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-            cursor.execute('SELECT * FROM Users WHERE user_id = %s', (session['id'],))
+            cursor.execute('SELECT * FROM Users WHERE user_id = %s', (session['user_id'],))
             account = cursor.fetchone()
 
-            if account and check_password_hash(account['password'], old_password):
-                new_password_hashed = generate_password_hash(new_password)
-                cursor.execute('UPDATE Users SET password = %s WHERE user_id = %s', (new_password_hashed, session['id']))
+            if account and bcrypt.checkpw(old_password.encode('utf-8'), account['password'].encode('utf-8')):
+                new_password_hashed = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt())
+                cursor.execute('UPDATE Users SET password = %s WHERE user_id = %s', (new_password_hashed.decode('utf-8'), session['user_id']))
                 mysql.connection.commit()
-                msg = 'Password updated successfully!'
+                return 'Password updated successfully!'
             else:
-                msg = 'Incorrect old password!'
-        return render_template('update_password.html', msg=msg)
+                return  'Incorrect old password!'
+        
+        return render_template('update_password.html')
+    
     return redirect(url_for('login'))
+
 
 @app.route('/profile')
 def profile():
@@ -187,6 +208,7 @@ def apply_advanced_booking_discount(check_in_date, total_price):
     return discounted_price
 
 @app.route('/book_room/<int:hotel_id>', methods=['GET', 'POST'])
+@login_required
 def book_room(hotel_id):
     if 'loggedin' not in session:
         return redirect(url_for('login'))
@@ -214,6 +236,10 @@ def book_room(hotel_id):
             'INSERT INTO Bookings (user_id, room_id, check_in_date, check_out_date, total_price) VALUES (%s, %s, %s, %s, %s)', 
             (user_id, room_id, check_in_date, check_out_date, total_price)
         )
+        cursor.execute(
+            'UPDATE Rooms SET status = %s WHERE room_id = %s', 
+            ('Booked', room_id)
+        )
         mysql.connection.commit()
 
         booking_id = cursor.lastrowid
@@ -235,6 +261,58 @@ def book_room(hotel_id):
         return send_file(buffer, as_attachment=True, download_name='receipt.pdf', mimetype='application/pdf')
     
     return render_template('book_room.html', hotel=hotel, rooms=rooms)
+
+
+@app.route('/cancel_booking/<int:booking_id>', methods=['POST'])
+@login_required
+def cancel_booking(booking_id):
+    try:
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    
+        # Fetch the booking details
+        cursor.execute('SELECT room_id FROM Bookings WHERE booking_id = %s AND user_id = %s', (booking_id, session['user_id']))
+        booking = cursor.fetchone()
+        if not booking:
+            flash('Booking not found or you do not have permission to cancel this booking.')
+            return redirect(url_for('my_bookings'))  # Redirect to a page showing user's bookings
+
+        room_id = booking['room_id']
+    
+        # Update the booking status to 'cancelled'
+        cursor.execute('UPDATE Bookings SET status = %s WHERE booking_id = %s', ('cancelled', booking_id))
+    
+        # Update the room status to 'available'
+        cursor.execute('UPDATE Rooms SET status = %s WHERE room_id = %s', ('available', room_id))
+    
+        mysql.connection.commit()
+        flash('Booking cancelled successfully.')
+    
+        return redirect(url_for('my_bookings'))
+    except Exception as e:
+        # Log the error or print it for debugging
+        print(f"Error: {e}")
+        flash('An error occurred while cancelling the booking. Please try again.')
+        return redirect(url_for('my_bookings'))
+
+
+    
+@app.route('/my_bookings')
+@login_required
+def my_bookings():
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute('SELECT * FROM Bookings WHERE user_id = %s', (session['user_id'],))
+    bookings = cursor.fetchall()
+    return render_template('my_bookings.html', bookings=bookings)
+
+
+@app.route('/update_room_status/<int:room_id>', methods=['POST'])
+@admin_required
+def update_room_status(room_id):
+    new_status = request.form['status']
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute('UPDATE Rooms SET status = %s WHERE room_id = %s', (new_status, room_id))
+    mysql.connection.commit()
+    return redirect(url_for('admin_dashboard'))
 
 @app.route('/admin_dashboard')
 @admin_required

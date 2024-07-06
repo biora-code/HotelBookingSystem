@@ -2,12 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Book a Room</title>
+    <title>Book Room</title>
 </head>
 <body>
-    <h2>Book a Room at {{ hotel['name'] }}</h2>
-    <form method="post" action="{{ url_for('book_room', hotel_id=hotel['hotel_id']) }}">
+    <h1>Book Room at {{ hotel.name }}</h1>
+    <form method="post">
         <label for="room">Room:</label>
         <select id="room" name="room">
             {% for room in rooms %}
@@ -15,10 +14,12 @@
             {% endfor %}
         </select><br>
         <label for="check_in_date">Check-in Date:</label>
-        <input type="date" id="check_in_date" name="check_in_date" required><br>
+        <input type="date" name="check_in_date" id="check_in_date" required><br>
+        
         <label for="check_out_date">Check-out Date:</label>
-        <input type="date" id="check_out_date" name="check_out_date" required><br>
-        <button type="submit">Book Now</button>
+        <input type="date" name="check_out_date" id="check_out_date" required><br>
+        
+        <button type="submit">Book Room</button>
     </form>
 </body>
 </html>
