@@ -1,25 +1,36 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Book Room</title>
-</head>
-<body>
-    <h1>Book Room at {{ hotel.name }}</h1>
-    <form method="post">
-        <label for="room">Room:</label>
-        <select id="room" name="room">
-            {% for room in rooms %}
-                <option value="{{ room['room_id'] }}">{{ room['features'] }} - £{{ room['price'] }}</option>
-            {% endfor %}
-        </select><br>
-        <label for="check_in_date">Check-in Date:</label>
-        <input type="date" name="check_in_date" id="check_in_date" required><br>
-        
-        <label for="check_out_date">Check-out Date:</label>
-        <input type="date" name="check_out_date" id="check_out_date" required><br>
-        
-        <button type="submit">Book Room</button>
+<!-- book_room.html -->
+<form method="post">
+    <label for="room">Select Room:</label>
+    <select name="room" id="room">
+        {% for room in rooms %}
+            <option value="{{ room.room_id }}">{{ room.room_type }}</option>
+        {% endfor %}
+    </select>
+    <br>
+    <label for="check_in_date">Check-in Date:</label>
+    <input type="date" name="check_in_date" id="check_in_date" required>
+    <br>
+    <label for="check_out_date">Check-out Date:</label>
+    <input type="date" name="check_out_date" id="check_out_date" required>
+    <br>
+    <label for="num_guests">Number of Guests:</label>
+    <input type="number" name="num_guests" id="num_guests" min="1" required>
+    <br>
+    <input type="submit" value="Book Room">
+</form>
+
+{% if user_booking %}
+    <form method="post" action="{{ url_for('cancel_booking', booking_id=user_booking['booking_id']) }}">
+        <input type="submit" value="Cancel Booking">
     </form>
-</body>
-</html>
+{% endif %}
+
+{% with messages = get_flashed_messages() %}
+    {% if messages %}
+        <ul class="flashes">
+            {% for message in messages %}
+                <li>{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+{% endwith %}

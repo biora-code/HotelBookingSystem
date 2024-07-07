@@ -7,7 +7,7 @@ from functools import wraps
 from reportlab.pdfgen import canvas
 from io import BytesIO
 from flask import send_file
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 from flask_login import login_required
 import bcrypt
@@ -175,17 +175,39 @@ def hotel_details(hotel_id):
     return render_template('hotel_details.html', hotel=hotel, rooms=rooms)
 
 
-def calculate_price(room_id, check_in_date, check_out_date):
+def calculate_price(room_id, check_in_date, check_out_date, num_guests):
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    cursor.execute('SELECT price FROM Rooms WHERE room_id = %s', (room_id,))
+    cursor.execute('SELECT price, room_type, max_guests FROM Rooms WHERE room_id = %s', (room_id,))
     room = cursor.fetchone()
-    base_price = room['price']
+    price = room['price']
+    room_type = room['room_type']
+    max_guests = room['max_guests']
 
     # Calculate the number of days of stay
     days_of_stay = (check_out_date - check_in_date).days
 
     # Calculate the total price
-    total_price = base_price * days_of_stay
+    total_price = price * days_of_stay
+
+
+    if room_type == 'Standard':
+        total_price += price * num_guests
+    elif room_type == 'Standard' and num_guests > 1:
+        return 'A standard room cannot have more than 1 guest'
+    elif room_type == 'Double' and num_guests == 1:
+        total_price += 0.20 * price * num_guests * days_of_stay
+    elif room_type == 'Double' and num_guests == 2:
+        total_price += 0.3 * price * num_guests * days_of_stay
+    elif room_type == 'Double' and num_guests > 2:
+        return 'A Double room cannot have more than 2 guests'
+    elif room_type == 'Family' and 4 >= num_guests > 1:
+        total_price += 0.05 * price * num_guests * days_of_stay
+    elif room_type == 'Family' and  num_guests > 4:
+        return 'A Family Room cannot have more than 4 guests'
+    elif room_type == 'Executive':
+        total_price += 5 * price * num_guests * days_of_stay
+    else:
+        return 'Please review the Room Type'
 
     # Apply any discounts if applicable
     total_price = apply_advanced_booking_discount(check_in_date, total_price)
@@ -222,7 +244,7 @@ def book_room(hotel_id):
     cursor.execute('SELECT * FROM Rooms WHERE hotel_id = %s', (hotel_id,))
     rooms = cursor.fetchall()
 
-    if request.method == 'POST' and 'room' in request.form and 'check_in_date' in request.form and 'check_out_date' in request.form:
+    if request.method == 'POST' and 'room' in request.form and 'check_in_date' in request.form and 'check_out_date' in request.form and 'num_guests' in request.form:
         user_id = session.get('user_id')
         if not user_id:
             return 'User ID not found in session. Please log in again.'
@@ -231,9 +253,41 @@ def book_room(hotel_id):
         room_id = request.form['room']
         check_in_date = datetime.strptime(request.form['check_in_date'], '%Y-%m-%d').date()
         check_out_date = datetime.strptime(request.form['check_out_date'], '%Y-%m-%d').date()
+        num_guests = int(request.form['num_guests'])
+
+        cursor.execute('SELECT max_guests FROM Rooms WHERE room_id = %s', (room_id,))
+        room = cursor.fetchone()
+        max_guests = room['max_guests']
+
+        if num_guests > max_guests:
+            flash(f'The selected room can only accommodate up to {max_guests} guests.')
+            return redirect(url_for('book_room', hotel_id=hotel_id))
+        
+        # Check for overlapping bookings
+        cursor.execute('SELECT * FROM Bookings WHERE room_id = %s AND status = %s AND ((check_in_date <= %s AND check_out_date >= %s) OR (check_in_date <= %s AND check_out_date >= %s) OR (check_in_date >= %s AND check_out_date <= %s))', 
+            (room_id, 'booked', check_in_date, check_in_date, check_out_date, check_out_date, check_in_date, check_out_date))
+        overlapping_bookings = cursor.fetchall()
+
+        if overlapping_bookings:
+            available_dates = []
+            for booking in overlapping_bookings:
+                if booking['user_id'] != user_id:
+                    if booking['check_in_date'] > check_out_date or booking['check_out_date'] < check_in_date:
+                        continue
+                    if check_in_date < booking['check_in_date']:
+                        available_dates.append((check_in_date, booking['check_in_date'] - timedelta(days=1)))
+                    if check_out_date > booking['check_out_date']:
+                        available_dates.append((booking['check_out_date'] + timedelta(days=1), check_out_date))
+
+            if not available_dates:
+                flash('This room is already booked by another user during your selected dates.')
+                return redirect(url_for('book_room', hotel_id=hotel_id))
+
+            flash('This room is partially available. Available dates: {}'.format(', '.join(f"{start} to {end}" for start, end in available_dates)))
+            return redirect(url_for('book_room', hotel_id=hotel_id))
 
         # Calculate total price (for simplicity, using off-peak season price)
-        total_price = calculate_price(room_id, check_in_date, check_out_date)
+        total_price = calculate_price(room_id, check_in_date, check_out_date, num_guests)
 
         cursor.execute(
             'INSERT INTO Bookings (user_id, room_id, check_in_date, check_out_date, total_price) VALUES (%s, %s, %s, %s, %s)', 
