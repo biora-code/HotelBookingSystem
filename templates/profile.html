@@ -9,9 +9,8 @@
 <body>
     <div>
         <header class="container">
-            <h1>Profile</h1>
+            <h1>My Profile</h1>
         </header>
-        <section>
             <div class="container" class="profile-info">
                 <p><strong>Username:</strong> {{ account['username'] }}</p>
                 <p><strong>Email:</strong> {{ account['email'] }}</p>
@@ -21,7 +20,6 @@
                 <a href="{{ url_for('update_password') }}" class="btn">Update Password</a>
                 <a href="{{ url_for('logout') }}" class="btn btn-outline">Logout</a>
             </div>
-        </section>
     </div>
 </body>
 </html>

@@ -4,13 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hotels</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/form.css') }}">
 </head>
 <body>
-    <h2>Hotels</h2>
-    <ul>
-        {% for hotel in hotels %}
-            <li><a href="{{ url_for('hotel_details', hotel_id=hotel['hotel_id']) }}">{{ hotel['name'] }}</a></li>
-        {% endfor %}
-    </ul>
+    <div class="container">
+        <h2>List of Hotels to book in</h2>
+        <ul>
+            {% for hotel in hotels %}
+                <li><a href="{{ url_for('hotel_details', hotel_id=hotel['hotel_id']) }}">{{ hotel['name'] }}, {{ hotel['city'] }}</a></li>
+            {% endfor %}
+        </ul>
+    </div>
 </body>
 </html>
+

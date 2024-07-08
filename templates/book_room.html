@@ -1,36 +1,55 @@
-<!-- book_room.html -->
-<form method="post">
-    <label for="room">Select Room:</label>
-    <select name="room" id="room">
-        {% for room in rooms %}
-            <option value="{{ room.room_id }}">{{ room.room_type }}</option>
-        {% endfor %}
-    </select>
-    <br>
-    <label for="check_in_date">Check-in Date:</label>
-    <input type="date" name="check_in_date" id="check_in_date" required>
-    <br>
-    <label for="check_out_date">Check-out Date:</label>
-    <input type="date" name="check_out_date" id="check_out_date" required>
-    <br>
-    <label for="num_guests">Number of Guests:</label>
-    <input type="number" name="num_guests" id="num_guests" min="1" required>
-    <br>
-    <input type="submit" value="Book Room">
-</form>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Room</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/book_room.css') }}">
+</head>
+<body>
+    <div class="form-container">
+        <h2>Book Room</h2>
+        <form method="post">
+            <div class="form-group">
+                <label for="room">Select Room:</label>
+                <select name="room" id="room">
+                    {% for room in rooms %}
+                        <option value="{{ room.room_id }}">{{ room.room_type }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="check_in_date">Check-in Date:</label>
+                <input type="date" name="check_in_date" id="check_in_date" required>
+            </div>
+            <div class="form-group">
+                <label for="check_out_date">Check-out Date:</label>
+                <input type="date" name="check_out_date" id="check_out_date" required>
+            </div>
+            <div class="form-group">
+                <label for="num_guests">Number of Guests:</label>
+                <input type="number" name="num_guests" id="num_guests" min="1" required>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Book Room" class="btn">
+            </div>
+        </form>
 
-{% if user_booking %}
-    <form method="post" action="{{ url_for('cancel_booking', booking_id=user_booking['booking_id']) }}">
-        <input type="submit" value="Cancel Booking">
-    </form>
-{% endif %}
+        {% if user_booking %}
+            <form method="post" action="{{ url_for('cancel_booking', booking_id=user_booking['booking_id']) }}">
+                <input type="submit" value="Cancel Booking" class="btn cancel">
+            </form>
+        {% endif %}
 
-{% with messages = get_flashed_messages() %}
-    {% if messages %}
-        <ul class="flashes">
-            {% for message in messages %}
-                <li>{{ message }}</li>
-            {% endfor %}
-        </ul>
-    {% endif %}
-{% endwith %}
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <ul class="flashes">
+                    {% for message in messages %}
+                        <li>{{ message }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+    </div>
+</body>
+</html>
