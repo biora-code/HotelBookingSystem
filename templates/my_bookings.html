@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Bookings</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/my_bookings.css') }}">
+    <script>
+        function confirmCancellation(event) {
+            if (!confirm("Are you sure you want to cancel your booking?")) {
+                event.preventDefault();
+            }
+        }
+    </script>
 </head>
 <body>
     <div class="container">
@@ -15,7 +22,7 @@
                     <li>
                         Booking ID: {{ booking.booking_id }} | Room ID: {{ booking.room_id }} | Check-in: {{ booking.check_in_date }} | Check-out: {{ booking.check_out_date }} | Status: {{ booking.status }}
                         {% if booking.status == 'booked' %}
-                            <form action="{{ url_for('cancel_booking', booking_id=booking.booking_id) }}" method="post">
+                            <form action="{{ url_for('cancel_booking', booking_id=booking.booking_id) }}" method="post" onsubmit="confirmCancellation(event)">
                                 <button type="submit" class="cancel-btn">Cancel Booking</button>
                             </form>
                         {% endif %}

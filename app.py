@@ -2,7 +2,6 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 from flask_mysqldb import MySQL
 import MySQLdb.cursors
 import re
-from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from reportlab.pdfgen import canvas
 from io import BytesIO
@@ -186,6 +185,8 @@ def calculate_price(room_id, check_in_date, check_out_date, num_guests):
     # Calculate the number of days of stay
     days_of_stay = (check_out_date - check_in_date).days
 
+    price = float(price)  # Ensure price is a float
+    
     # Calculate the total price
     total_price = price * days_of_stay
 
@@ -229,8 +230,24 @@ def apply_advanced_booking_discount(check_in_date, total_price):
     total_price_float = float(total_price)
     discounted_price_float = total_price_float * (1 - discount)
     discounted_price = Decimal(discounted_price_float)
-
     return discounted_price
+
+def calculate_price_in_currency(discounted_price, currency):
+    conversion_rates = {
+        'GBP': 1.0,
+        'USD': 1.28,
+        'EURO': 1.18,
+        'Dirham': 5.2,
+        'Yuan': 8.9,
+        'INR': 106.0,
+        'PKR': 368.0
+    }
+    
+    if currency not in conversion_rates:
+        raise ValueError("Invalid currency")
+
+    return float(discounted_price) * conversion_rates[currency]
+
 
 @app.route('/book_room/<int:hotel_id>', methods=['GET', 'POST'])
 @login_required
@@ -248,16 +265,27 @@ def book_room(hotel_id):
         user_id = session.get('user_id')
         if not user_id:
             return 'User ID not found in session. Please log in again.'
-            return redirect(url_for('login'))
-
+        
         room_id = request.form['room']
         check_in_date = datetime.strptime(request.form['check_in_date'], '%Y-%m-%d').date()
         check_out_date = datetime.strptime(request.form['check_out_date'], '%Y-%m-%d').date()
         num_guests = int(request.form['num_guests'])
+        currency = request.form['currency']
 
         cursor.execute('SELECT max_guests FROM Rooms WHERE room_id = %s', (room_id,))
         room = cursor.fetchone()
         max_guests = room['max_guests']
+
+        # Check if check-out date is earlier than check-in date
+        if check_out_date <= check_in_date:
+            flash('Check-out date cannot be earlier than check-in date.')
+            return redirect(url_for('book_room', hotel_id=hotel_id))
+        
+        # Check if the booking duration exceeds 20 days
+        stay_duration = (check_out_date - check_in_date).days
+        if stay_duration > 20:
+            flash('Maximum stay duration is 20 days. Please make separate bookings for a longer stay.')
+            return redirect(url_for('book_room', hotel_id=hotel_id))
 
         if num_guests > max_guests:
             flash(f'The selected room can only accommodate up to {max_guests} guests.')
@@ -288,10 +316,11 @@ def book_room(hotel_id):
 
         # Calculate total price (for simplicity, using off-peak season price)
         total_price = calculate_price(room_id, check_in_date, check_out_date, num_guests)
+        final_price = calculate_price_in_currency(total_price, currency)
 
         cursor.execute(
             'INSERT INTO Bookings (user_id, room_id, check_in_date, check_out_date, total_price) VALUES (%s, %s, %s, %s, %s)', 
-            (user_id, room_id, check_in_date, check_out_date, total_price)
+            (user_id, room_id, check_in_date, check_out_date, final_price)
         )
         cursor.execute(
             'UPDATE Rooms SET status = %s WHERE room_id = %s', 
@@ -309,7 +338,7 @@ def book_room(hotel_id):
         p.drawString(100, 720, f"Room ID: {room_id}")
         p.drawString(100, 705, f"Check-in Date: {check_in_date}")
         p.drawString(100, 690, f"Check-out Date: {check_out_date}")
-        p.drawString(100, 675, f"Total Price: {total_price}")
+        p.drawString(100, 675, f"Total Price: {currency} {final_price}")
         p.drawString(100, 660, f"Status: booked")
         p.showPage()
         p.save()
@@ -331,7 +360,7 @@ def cancel_booking(booking_id):
         booking = cursor.fetchone()
         if not booking:
             flash('Booking not found or you do not have permission to cancel this booking.')
-            return redirect(url_for('my_bookings'))  # Redirect to a page showing user's bookings
+            return redirect(url_for('my_bookings'))  # Redirect to the page showing user's bookings
 
         room_id = booking['room_id']
     

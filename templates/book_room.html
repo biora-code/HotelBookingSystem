@@ -31,15 +31,21 @@
                 <input type="number" name="num_guests" id="num_guests" min="1" required>
             </div>
             <div class="form-group">
+                <label for="currency">Select Currency:</label>
+                <select name="currency" id="currency">
+                    <option value="GBP">GBP</option>
+                    <option value="USD">USD</option>
+                    <option value="EURO">EURO</option>
+                    <option value="Dirham">Dirham</option>
+                    <option value="Yuan">Yuan</option>
+                    <option value="INR">INR</option>
+                    <option value="PKR">PKR</option>
+                </select>
+            </div>
+            <div class="form-group">
                 <input type="submit" value="Book Room" class="btn">
             </div>
         </form>
-
-        {% if user_booking %}
-            <form method="post" action="{{ url_for('cancel_booking', booking_id=user_booking['booking_id']) }}">
-                <input type="submit" value="Cancel Booking" class="btn cancel">
-            </form>
-        {% endif %}
 
         {% with messages = get_flashed_messages() %}
             {% if messages %}
