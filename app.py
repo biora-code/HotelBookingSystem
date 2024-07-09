@@ -26,7 +26,7 @@ app.secret_key = 'your_secret_key'
 
 @app.route('/')
 def index():
-    return 'Welcome to WH Booking System'
+    return render_template('home.html')
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -275,7 +275,13 @@ def book_room(hotel_id):
         cursor.execute('SELECT max_guests FROM Rooms WHERE room_id = %s', (room_id,))
         room = cursor.fetchone()
         max_guests = room['max_guests']
+        current_date = datetime.now().date()
 
+        # Check if check-in or check-out date is earlier than today
+        if check_in_date < current_date or check_out_date < current_date:
+            flash('Check-in and Check-out dates cannot be earlier than today.')
+            return redirect(url_for('book_room', hotel_id=hotel_id))
+    
         # Check if check-out date is earlier than check-in date
         if check_out_date <= check_in_date:
             flash('Check-out date cannot be earlier than check-in date.')
@@ -290,7 +296,8 @@ def book_room(hotel_id):
         if num_guests > max_guests:
             flash(f'The selected room can only accommodate up to {max_guests} guests.')
             return redirect(url_for('book_room', hotel_id=hotel_id))
-        
+    
+
         # Check for overlapping bookings
         cursor.execute('SELECT * FROM Bookings WHERE room_id = %s AND status = %s AND ((check_in_date <= %s AND check_out_date >= %s) OR (check_in_date <= %s AND check_out_date >= %s) OR (check_in_date >= %s AND check_out_date <= %s))', 
             (room_id, 'booked', check_in_date, check_in_date, check_out_date, check_out_date, check_in_date, check_out_date))
