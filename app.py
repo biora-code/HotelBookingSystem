@@ -318,6 +318,10 @@ def book_room(hotel_id):
         total_price = calculate_price(room_id, check_in_date, check_out_date, num_guests)
         final_price = calculate_price_in_currency(total_price, currency)
 
+        # Fetch user details
+        cursor.execute('SELECT username, email FROM Users WHERE user_id = %s', (user_id,))
+        user = cursor.fetchone()
+
         cursor.execute(
             'INSERT INTO Bookings (user_id, room_id, check_in_date, check_out_date, total_price) VALUES (%s, %s, %s, %s, %s)', 
             (user_id, room_id, check_in_date, check_out_date, final_price)
@@ -328,23 +332,33 @@ def book_room(hotel_id):
         )
         mysql.connection.commit()
 
-        booking_id = cursor.lastrowid
+        cursor.execute('SELECT booking_date, booking_id FROM Bookings WHERE user_id = %s AND check_in_date = %s AND check_out_date = %s', (user_id,check_in_date, check_out_date))
+        booking_info = cursor.fetchone()
+        booking_date = booking_info['booking_date']
+        booking_id = booking_info['booking_id']
+
 
         # Generate PDF receipt
         buffer = BytesIO()
         p = canvas.Canvas(buffer)
-        p.drawString(100, 750, f"Booking ID: {booking_id}")
-        p.drawString(100, 735, f"User ID: {user_id}")
-        p.drawString(100, 720, f"Room ID: {room_id}")
-        p.drawString(100, 705, f"Check-in Date: {check_in_date}")
-        p.drawString(100, 690, f"Check-out Date: {check_out_date}")
-        p.drawString(100, 675, f"Total Price: {currency} {final_price}")
-        p.drawString(100, 660, f"Status: booked")
+        width, height = p._pagesize
+        center_x = width / 2
+
+        p.drawString(center_x - 55, height - 270, f"Booking ID: {booking_id}")
+        p.drawString(center_x - 55, height - 290, f"User ID: {user_id}")
+        p.drawString(center_x - 55, height - 310, f"Username: {user['username']}")
+        p.drawString(center_x - 55, height - 330, f"Email: {user['email']}")
+        p.drawString(center_x - 55, height - 350, f"Room ID: {room_id}")
+        p.drawString(center_x - 55, height - 370, f"Booking Date: {booking_date}")
+        p.drawString(center_x - 55, height - 390, f"Check-in Date: {check_in_date}")
+        p.drawString(center_x - 55, height - 410, f"Check-out Date: {check_out_date}")
+        p.drawString(center_x - 55, height - 430, f"Total Price: {final_price} {currency}")
+        p.drawString(center_x - 55, height - 450, f"Status: booked")
         p.showPage()
         p.save()
 
         buffer.seek(0)
-        return send_file(buffer, as_attachment=True, download_name='receipt.pdf', mimetype='application/pdf')
+        return send_file(buffer, as_attachment=True, download_name=f'receipt_{booking_id}_{user["username"]}.pdf', mimetype='application/pdf')
     
     return render_template('book_room.html', hotel=hotel, rooms=rooms)
 
