@@ -7,10 +7,13 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/home.css') }}">
 </head>
 <body>
-    <div class="container">    
+    <div class="container">
         <h1>Welcome to WH Booking!</h1>
+        <a href="/login" class="hover-link">
         <h2>Please register and login to start booking!</h2>
-    </div> <br>
+        </a>
+    </div> 
+    <br>
     <div class="container-pictures">
         <div class="city" onclick="location.href='/login'">
             <img src="static/images/aberdeen.jpg" alt="Aberdeen">
