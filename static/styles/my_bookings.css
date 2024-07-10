@@ -50,3 +50,7 @@ li {
 .cancel-btn:hover {
     background-color: #c82333;
 }
+
+.flashes{
+    text-rendering: bold;
+}

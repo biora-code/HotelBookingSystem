@@ -330,8 +330,8 @@ def book_room(hotel_id):
         user = cursor.fetchone()
 
         cursor.execute(
-            'INSERT INTO Bookings (user_id, room_id, check_in_date, check_out_date, total_price) VALUES (%s, %s, %s, %s, %s)', 
-            (user_id, room_id, check_in_date, check_out_date, final_price)
+            'INSERT INTO Bookings (user_id, room_id, check_in_date, check_out_date, total_price, currency) VALUES (%s, %s, %s, %s, %s, %s)', 
+            (user_id, room_id, check_in_date, check_out_date, final_price, currency)
         )
         cursor.execute(
             'UPDATE Rooms SET status = %s WHERE room_id = %s', 
@@ -370,6 +370,8 @@ def book_room(hotel_id):
     return render_template('book_room.html', hotel=hotel, rooms=rooms)
 
 
+from datetime import datetime
+
 @app.route('/cancel_booking/<int:booking_id>', methods=['POST'])
 @login_required
 def cancel_booking(booking_id):
@@ -377,22 +379,44 @@ def cancel_booking(booking_id):
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     
         # Fetch the booking details
-        cursor.execute('SELECT room_id FROM Bookings WHERE booking_id = %s AND user_id = %s', (booking_id, session['user_id']))
+        cursor.execute('SELECT room_id, booking_date, total_price FROM Bookings WHERE booking_id = %s AND user_id = %s', (booking_id, session['user_id']))
         booking = cursor.fetchone()
         if not booking:
             flash('Booking not found or you do not have permission to cancel this booking.')
             return redirect(url_for('my_bookings'))  # Redirect to the page showing user's bookings
 
         room_id = booking['room_id']
+        booking_date = booking['booking_date'].date()
+        booking_price = booking['total_price']
+        currency = booking['currency']
     
-        # Update the booking status to 'cancelled'
-        cursor.execute('UPDATE Bookings SET status = %s WHERE booking_id = %s', ('cancelled', booking_id))
+        # Calculate the number of days between today and the booking date
+        today = datetime.today().date()
+        days_until_booking = (booking_date - today).days
     
+        # Determine cancellation charges
+        if days_until_booking > 60:
+            cancellation_charge = Decimal(0)
+        elif 30 < days_until_booking <= 60:
+            cancellation_charge = Decimal(0.4) * booking_price
+        elif 10 < days_until_booking <= 30:
+            cancellation_charge = Decimal(0.8) * booking_price
+        else:
+            cancellation_charge = Decimal(1.0) * booking_price
+
+        # Update the booking status to 'cancelled' and set the cancellation charge
+        cursor.execute('UPDATE Bookings SET status = %s, cancellation_charge = %s WHERE booking_id = %s', ('cancelled', cancellation_charge, booking_id))
+        
+        # Check if the status update was successful
+        if cursor.rowcount == 0:
+            raise Exception("Failed to update booking status")
+        
         # Update the room status to 'available'
         cursor.execute('UPDATE Rooms SET status = %s WHERE room_id = %s', ('available', room_id))
-    
+
+
         mysql.connection.commit()
-        flash('Booking cancelled successfully.')
+        flash(f'Booking cancelled successfully. Cancellation charge: {currency} {cancellation_charge:.2f}')
     
         return redirect(url_for('my_bookings'))
     except Exception as e:
@@ -400,6 +424,7 @@ def cancel_booking(booking_id):
         print(f"Error: {e}")
         flash('An error occurred while cancelling the booking. Please try again.')
         return redirect(url_for('my_bookings'))
+
 
 
     
