@@ -9,8 +9,35 @@
         function confirmCancellation(event) {
             if (!confirm("Are you sure you want to cancel your booking?")) {
                 event.preventDefault();
+            } else {
+                // Record cancellation time in local storage
+                const bookingId = event.target.getAttribute('data-booking-id');
+                const cancellationTime = new Date().toISOString();
+                localStorage.setItem(`cancellation_time_${bookingId}`, cancellationTime);
             }
         }
+
+        function hideCancelledBookings() {
+            const now = new Date();
+            document.querySelectorAll('.booking').forEach(booking => {
+                const bookingId = booking.getAttribute('data-booking-id');
+                const status = booking.getAttribute('data-status');
+
+                // Check if there's a stored cancellation time
+                const cancellationTime = localStorage.getItem(`cancellation_time_${bookingId}`);
+                if (status === 'cancelled' && cancellationTime) {
+                    const cancellationDate = new Date(cancellationTime);
+                    const threeHours = 3 * 60 * 60 * 1000; // 3 hours in milliseconds
+
+                    // Hide the booking if it was cancelled more than three hours ago
+                    if (now - cancellationDate > threeHours) {
+                        booking.style.display = 'none';
+                    }
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', hideCancelledBookings);
     </script>
 </head>
 <body>
@@ -28,10 +55,10 @@
         {% if bookings %}
             <ul>
                 {% for booking in bookings %}
-                    <li>
+                    <li class="booking" data-booking-id="{{ booking.booking_id }}" data-status="{{ booking.status }}">
                         Booking ID: {{ booking.booking_id }} | Room ID: {{ booking.room_id }} | Check-in: {{ booking.check_in_date }} | Check-out: {{ booking.check_out_date }} | Status: {{ booking.status }}
                         {% if booking.status == 'booked' %}
-                            <form action="{{ url_for('cancel_booking', booking_id=booking.booking_id) }}" method="post" onsubmit="confirmCancellation(event)">
+                            <form action="{{ url_for('cancel_booking', booking_id=booking.booking_id) }}" method="post" onsubmit="confirmCancellation(event)" data-booking-id="{{ booking.booking_id }}">
                                 <button type="submit" class="cancel-btn">Cancel Booking</button>
                             </form>
                         {% endif %}

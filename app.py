@@ -26,6 +26,18 @@ app.secret_key = 'your_secret_key'
 
 @app.route('/')
 def index():
+    city = request.args.get('city', '')
+
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+    if city:
+        query = 'SELECT hotel_id, name, city FROM Hotels WHERE city LIKE %s'
+        cursor.execute(query, ('%' + city + '%',))
+    else:
+        query = 'SELECT hotel_id, name, city FROM Hotels'
+        cursor.execute(query)
+
+    hotels = cursor.fetchall()
     return render_template('home.html')
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -159,8 +171,17 @@ def admin_dashboard_welcome():
 
 @app.route('/hotels')
 def hotels():
+    city = request.args.get('city', '')
+
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    cursor.execute('SELECT * FROM Hotels')
+
+    if city:
+        query = 'SELECT hotel_id, name, city FROM Hotels WHERE city LIKE %s'
+        cursor.execute(query, ('%' + city + '%',))
+    else:
+        query = 'SELECT hotel_id, name, city FROM Hotels'
+        cursor.execute(query)
+
     hotels = cursor.fetchall()
     return render_template('hotels.html', hotels=hotels)
 
@@ -176,16 +197,28 @@ def hotel_details(hotel_id):
 
 def calculate_price(room_id, check_in_date, check_out_date, num_guests):
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    cursor.execute('SELECT price, room_type, max_guests FROM Rooms WHERE room_id = %s', (room_id,))
+    cursor.execute('SELECT room_type, max_guests, hotel_id FROM Rooms WHERE room_id = %s', (room_id,))
     room = cursor.fetchone()
-    price = room['price']
+    hotel_id_for_selected_room = room['hotel_id']
     room_type = room['room_type']
     max_guests = room['max_guests']
+    # Fetch hotel details including peak and off-peak prices
+    cursor.execute('SELECT * FROM Hotels WHERE hotel_id = %s', (hotel_id_for_selected_room,))
+    hotel = cursor.fetchone()
+    
+    current_month = datetime.now().month
+
+    if current_month in [1, 5, 6, 7, 8, 12]:
+        price = hotel['peak_price']
+
+    else:
+        price = hotel['off_peak_price']
 
     # Calculate the number of days of stay
     days_of_stay = (check_out_date - check_in_date).days
 
-    price = float(price)  # Ensure price is a float
+    # Ensure price is a float
+    price = float(price) 
     
     # Calculate the total price
     total_price = price * days_of_stay
@@ -276,6 +309,7 @@ def book_room(hotel_id):
         room = cursor.fetchone()
         max_guests = room['max_guests']
         current_date = datetime.now().date()
+        max_booking_date = current_date + timedelta(days=4 * 30)  # Four months in advance
 
         # Check if check-in or check-out date is earlier than today
         if check_in_date < current_date or check_out_date < current_date:
@@ -285,6 +319,10 @@ def book_room(hotel_id):
         # Check if check-out date is earlier than check-in date
         if check_out_date <= check_in_date:
             flash('Check-out date cannot be earlier than check-in date.')
+            return redirect(url_for('book_room', hotel_id=hotel_id))
+        
+        if check_in_date > max_booking_date or check_out_date > max_booking_date:
+            flash('You cannot book more than 4 months in advance.')
             return redirect(url_for('book_room', hotel_id=hotel_id))
         
         # Check if the booking duration exceeds 20 days
@@ -370,7 +408,6 @@ def book_room(hotel_id):
     return render_template('book_room.html', hotel=hotel, rooms=rooms)
 
 
-from datetime import datetime
 
 @app.route('/cancel_booking/<int:booking_id>', methods=['POST'])
 @login_required
@@ -379,7 +416,7 @@ def cancel_booking(booking_id):
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     
         # Fetch the booking details
-        cursor.execute('SELECT room_id, booking_date, total_price FROM Bookings WHERE booking_id = %s AND user_id = %s', (booking_id, session['user_id']))
+        cursor.execute('SELECT room_id, booking_date, total_price, currency FROM Bookings WHERE booking_id = %s AND user_id = %s', (booking_id, session['user_id']))
         booking = cursor.fetchone()
         if not booking:
             flash('Booking not found or you do not have permission to cancel this booking.')
@@ -422,7 +459,7 @@ def cancel_booking(booking_id):
     except Exception as e:
         # Log the error or print it for debugging
         print(f"Error: {e}")
-        flash('An error occurred while cancelling the booking. Please try again.')
+        flash(f'An error occurred while cancelling the booking: {str(e)}')
         return redirect(url_for('my_bookings'))
 
 

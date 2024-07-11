@@ -9,6 +9,13 @@
 <body>
     <div class="container">
         <h2>List of Hotels to book in</h2>
+        
+        <!-- Search form -->
+        <form method="GET" action="{{ url_for('hotels') }}">
+            <input type="text" name="city" placeholder="Search by city" value="{{ request.args.get('city', '') }}">
+            <button type="submit">Search</button>
+        </form>
+        <!-- Hotels list -->
         <ul>
             {% for hotel in hotels %}
                 <li><a href="{{ url_for('hotel_details', hotel_id=hotel['hotel_id']) }}">{{ hotel['name'] }}, {{ hotel['city'] }}</a></li>
@@ -17,4 +24,3 @@
     </div>
 </body>
 </html>
-
