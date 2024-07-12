@@ -268,20 +268,12 @@ def apply_advanced_booking_discount(check_in_date, total_price):
     return discounted_price
 
 def calculate_price_in_currency(discounted_price, currency):
-    conversion_rates = {
-        'GBP': 1.0,
-        'USD': 1.28,
-        'EURO': 1.18,
-        'Dirham': 5.2,
-        'Yuan': 8.9,
-        'INR': 106.0,
-        'PKR': 368.0
-    }
-    
-    if currency not in conversion_rates:
-        raise ValueError("Invalid currency")
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute('SELECT * FROM conversion_rates WHERE currency = %s', (currency,))
+    conversion_rates = cursor.fetchone()
+    currency_rate = conversion_rates['rate']
 
-    return float(discounted_price) * conversion_rates[currency]
+    return float(discounted_price) * float(currency_rate)
 
 
 @app.route('/book_room/<int:hotel_id>', methods=['GET', 'POST'])
@@ -462,8 +454,6 @@ def cancel_booking(booking_id):
     
         return redirect(url_for('my_bookings'))
 
-
-
     
 @app.route('/my_bookings')
 @login_required
@@ -478,6 +468,7 @@ def my_bookings():
 @admin_required
 def admin_dashboard():
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
     cursor.execute('SELECT * FROM Hotels')
     hotels = cursor.fetchall()
     
@@ -490,7 +481,10 @@ def admin_dashboard():
     cursor.execute('SELECT * FROM Rooms')
     rooms = cursor.fetchall()
     
-    return render_template('admin_dashboard.html', hotels=hotels, bookings=bookings, users=users, rooms = rooms)
+    cursor.execute('SELECT * FROM conversion_rates')
+    conversion_rates = cursor.fetchall()
+
+    return render_template('admin_dashboard.html', hotels=hotels, bookings=bookings, users=users, rooms = rooms, conversion_rates = conversion_rates)
 
 
 @app.route('/add_hotel', methods=['GET', 'POST'])
@@ -578,6 +572,7 @@ def add_room():
     return render_template('add_room.html', hotels=hotels)
 
 @app.route('/change_room_status/<int:room_id>', methods=['GET', 'POST'])
+@admin_required
 def change_room_status(room_id):
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute("SELECT * FROM rooms WHERE room_id = %s", (room_id,))
@@ -597,6 +592,24 @@ def change_room_status(room_id):
                 mysql.connection.commit()
                 return redirect(url_for('admin_dashboard'))
         return 'Room not found', 404
+    
+@app.route('/change_conversion_rate/<string:currency>', methods=['GET', 'POST'])
+@admin_required
+def change_conversion_rate(currency):
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("SELECT * FROM conversion_rates WHERE currency = %s", (currency,))
+    conversion_rate = cursor.fetchone()
+    if conversion_rate is None:
+        return 'Currency not found', 404
+    
+    if request.method == 'GET':
+        return render_template('change_conversion_rate.html', conversion_rate=conversion_rate)
+    
+    elif request.method == 'POST':
+        rate = request.form['rate']
+        cursor.execute("UPDATE conversion_rates SET rate = %s WHERE currency = %s", (rate, currency,))
+        mysql.connection.commit()
+        return redirect(url_for('admin_dashboard'))
 
 
 @app.route('/modify_users', methods=['GET', 'POST'])

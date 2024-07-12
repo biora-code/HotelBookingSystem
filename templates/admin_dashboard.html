@@ -66,9 +66,7 @@
             </li>
         {% endfor %}
     </ul>
-    
-    
-    
+
     <h3>Users</h3>
     <ul>
         {% for user in users %}
@@ -77,6 +75,15 @@
         {% endfor %}
     </ul>
     <a href="{{ url_for('modify_users') }}">Modify Users Password</a>
+
+    <h3>Conversion Rates</h3>
+    <ul>
+        {% for conversion_rate in conversion_rates %}
+            <li>Currency: {{ conversion_rate['currency'] }}, Rate: {{ conversion_rate['rate'] }}
+                <a href="{{ url_for('change_conversion_rate', currency=conversion_rate['currency']) }}">Change Conversion Rate</a>
+            </li>
+        {% endfor %}
+    </ul>
 
 </body>
 <script>
