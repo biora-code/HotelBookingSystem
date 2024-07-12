@@ -12,8 +12,8 @@ from flask_login import login_required
 import bcrypt
 from werkzeug.security import generate_password_hash
 
-
 app = Flask(__name__)
+
 
 # MySQL configurations
 app.config['MYSQL_HOST'] = 'localhost'
@@ -307,9 +307,10 @@ def book_room(hotel_id):
         num_guests = int(request.form['num_guests'])
         currency = request.form['currency']
 
-        cursor.execute('SELECT max_guests FROM Rooms WHERE room_id = %s', (room_id,))
+        cursor.execute('SELECT max_guests, status FROM Rooms WHERE room_id = %s', (room_id,))
         room = cursor.fetchone()
         max_guests = room['max_guests']
+        room_status = room ['status']
         current_date = datetime.now().date()
         max_booking_date = current_date + timedelta(days=4 * 30)  # Four months in advance
 
@@ -336,7 +337,10 @@ def book_room(hotel_id):
         if num_guests > max_guests:
             flash(f'The selected room can only accommodate up to {max_guests} guests.')
             return redirect(url_for('book_room', hotel_id=hotel_id))
-    
+        
+        if room_status == 'maintenance':
+            flash(f'The selected room is unavailable due to maintenance at the moment. Please pick another room.')
+            return redirect(url_for('book_room', hotel_id = hotel_id))
 
         # Check for overlapping bookings
         cursor.execute('SELECT * FROM Bookings WHERE room_id = %s AND status = %s AND ((check_in_date <= %s AND check_out_date >= %s) OR (check_in_date <= %s AND check_out_date >= %s) OR (check_in_date >= %s AND check_out_date <= %s))', 
@@ -375,7 +379,7 @@ def book_room(hotel_id):
         )
         cursor.execute(
             'UPDATE Rooms SET status = %s WHERE room_id = %s', 
-            ('Booked', room_id)
+            ('booked', room_id)
         )
         mysql.connection.commit()
 
@@ -483,10 +487,10 @@ def admin_dashboard():
     cursor.execute('SELECT * FROM Users')
     users = cursor.fetchall()
 
-    #cursor.execute('SELECT * FROM Rooms')
-    #rooms = cursor.fetchall()
+    cursor.execute('SELECT * FROM Rooms')
+    rooms = cursor.fetchall()
     
-    return render_template('admin_dashboard.html', hotels=hotels, bookings=bookings, users=users)
+    return render_template('admin_dashboard.html', hotels=hotels, bookings=bookings, users=users, rooms = rooms)
 
 
 @app.route('/add_hotel', methods=['GET', 'POST'])
@@ -572,6 +576,27 @@ def add_room():
     hotels = cursor.fetchall()
     
     return render_template('add_room.html', hotels=hotels)
+
+@app.route('/change_room_status/<int:room_id>', methods=['GET', 'POST'])
+def change_room_status(room_id):
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("SELECT * FROM rooms WHERE room_id = %s", (room_id,))
+    mysql.connection.commit()
+    rooms = cursor.fetchall()
+    if request.method == 'GET':
+        for room in rooms:
+            if room['room_id'] == room_id:
+                return render_template('change_room_status.html', room=room)
+        return 'Room not found', 404
+    elif request.method == 'POST':
+        for room in rooms:
+                status = request.form['status']
+                cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+                cursor.execute("UPDATE rooms SET status = %s  WHERE room_id = %s", (status, room_id,))
+                cursor.execute("UPDATE bookings SET status = %s  WHERE room_id = %s", (status, room_id,))
+                mysql.connection.commit()
+                return redirect(url_for('admin_dashboard'))
+        return 'Room not found', 404
 
 
 @app.route('/modify_users', methods=['GET', 'POST'])

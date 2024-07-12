@@ -25,9 +25,49 @@
     <h3>Bookings</h3>
     <ul>
         {% for booking in bookings %}
-            <li>Booking ID: {{ booking['booking_id'] }}, User ID: {{ booking['user_id'] }}, Room ID: {{ booking['room_id'] }}, Check-in: {{ booking['check_in_date'] }}, Check-out: {{ booking['check_out_date'] }}, Status: {{ booking['status'] }}</li>
+            <li>
+                Booking ID: {{ booking['booking_id'] }},
+                User ID: {{ booking['user_id'] }},
+                Room ID: {{ booking['room_id'] }},
+                Check-in: {{ booking['check_in_date'] }},
+                Check-out: {{ booking['check_out_date'] }},
+                Status: {{ booking['status'] }}
+                {% if booking['status'] == 'booked' %}
+                    <i>Room {{ booking['room_id'] }} is booked.</i>
+                    <!-- Call JavaScript function to calculate next day -->
+                    <i>It will be available on <span id="nextDay{{ booking['booking_id'] }}"></span>.</i>
+                    <script>
+                        // Inline JavaScript to call calculateNextDay function
+                        function calculateNextDay(checkOutDate) {
+                            var nextDay = new Date(checkOutDate);
+                            nextDay.setDate(nextDay.getDate() + 1);
+                            return nextDay.toISOString().slice(0, 10);  // Format as YYYY-MM-DD
+                        }
+                        document.getElementById('nextDay{{ booking['booking_id'] }}').textContent = calculateNextDay('{{ booking['check_out_date'] | replace("'", "\\'") }}');
+                    </script>
+                {% else %}
+                    <i>This boooking is {{ booking['status'] }}. </i>
+                {% endif %}
+            </li>
         {% endfor %}
     </ul>
+
+    <h3>Rooms</h3>
+    <ul>
+        {% for room in rooms %}
+            <li>
+                Room ID: {{ room['room_id'] }},
+                Hotel ID: {{ room['hotel_id'] }},
+                Room Type: {{ room['room_type'] }},
+                Status: <b>{{ room['status'] }}</b>,
+                Features: {{ room['features'] }},
+                Maximum number of guests: {{ room['max_guests'] }}
+                <a href="{{ url_for('change_room_status', room_id=room['room_id']) }}">Change Room Status</a>
+            </li>
+        {% endfor %}
+    </ul>
+    
+    
     
     <h3>Users</h3>
     <ul>
@@ -37,6 +77,7 @@
         {% endfor %}
     </ul>
     <a href="{{ url_for('modify_users') }}">Modify Users Password</a>
+
 </body>
 <script>
     function confirmDeleteHotel(hotelId) {
@@ -48,7 +89,7 @@
         if (confirm("Are you sure you want to remove this user?")) {
             window.location.href = "/delete_user/" + userId;
         }
-    }
+    };
 
     </script>
 </html>

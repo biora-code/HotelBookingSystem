@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Room Status</title>
+</head>
+<body>
+    <h3>Change the Room Status to Maintenance or Available on Rooms List </h3>
+    <form method="POST">
+        <label for="name">Status:</label>
+        <select id="status" name="status" required>
+            <option value="available" {% if room['status'] == 'available' %}selected{% endif %}>Available</option>
+            <option value="maintenance" {% if room['status'] == 'maintenance' %}selected{% endif %}>Maintenance</option>
+        </select><br><br>
+        <button type="submit">Change Room Status</button>
+    </form>
+</body>
+</html>
