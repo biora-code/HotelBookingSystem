@@ -526,7 +526,16 @@ def delete_boooking(booking_id):
     mysql.connection.commit()
     return redirect(url_for('admin_dashboard'))
 
+@app.route('/delete_room/<int:room_id>')
+@admin_required
+def delete_room(room_id):
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("DELETE FROM rooms WHERE room_id = %s", (room_id,))
+    mysql.connection.commit()
+    return redirect(url_for('admin_dashboard'))
+
 @app.route('/modify_hotel/<int:hotel_id>', methods=['GET', 'POST'])
+@admin_required
 def modify_hotel(hotel_id):
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute("SELECT * FROM hotels WHERE hotel_id = %s", (hotel_id,))
@@ -562,14 +571,15 @@ def delete_user(user_id):
 @app.route('/add_room', methods=['GET', 'POST'])
 @admin_required
 def add_room():
-    if request.method == 'POST' and 'hotel_id' in request.form and 'price' in request.form and 'features' in request.form:
+    if request.method == 'POST' and 'hotel_id' in request.form:
         hotel_id = request.form['hotel_id']
-        price = request.form['price']
         features = request.form['features']
-        
+        status = request.form['status']
+        room_type = request.form['room_type']
+        max_guests = request.form['max_guests']
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        cursor.execute('INSERT INTO Rooms (hotel_id, price, features) VALUES (%s, %s, %s)', 
-                       (hotel_id, price, features))
+        cursor.execute('INSERT INTO Rooms (hotel_id, status, features, room_type, max_guests) VALUES (%s, %s, %s, %s, %s)', 
+                       (hotel_id, status, features, room_type, max_guests))
         mysql.connection.commit()
         return redirect(url_for('admin_dashboard'))
     
@@ -621,6 +631,7 @@ def change_conversion_rate(currency):
 
 
 @app.route('/modify_users', methods=['GET', 'POST'])
+@admin_required
 def modify_users():
     if 'username' not in session or not session.get('is_admin'):
         flash('You must be logged in as an admin to access this page.')
