@@ -4,14 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Conversion Rates</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/form.css') }}">
 </head>
 <body>
+    <div class="container">
     <h3>Change the Conversion Rate</h3>
     <form method="POST">
         <label for="rate">Rate:</label>
-        <input type="number" step="0.01" id="rate" name="rate" value="{{ conversion_rate['rate'] }}" required><br><br>
+        <input type="number" step="0.01" id="rate" name="rate" value="{{ conversion_rate['rate'] }}" required>
         <button type="submit">Change rate</button>
     </form>
-    
+    </div>
 </body>
 </html>

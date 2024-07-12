@@ -14,91 +14,86 @@
         </a>
     </div> 
     <br>       
-        <!-- Search form -->
+    <!-- Search form -->
         <form method="GET" action="{{ url_for('hotels') }}">
             <input type="text" name="city" placeholder="Search by city" value="{{ request.args.get('city', '') }}">
+            <input type="text" name="hotel_name" placeholder="Search by hotel name" value="{{ request.args.get('hotel_name', '') }}">
             <button type="submit">Search</button>
         </form>
-        <!-- Hotels list -->
-        <ul>
-            {% for hotel in hotels %}
-                <li><a href="{{ url_for('hotel_details', hotel_id=hotel['hotel_id']) }}">{{ hotel['name'] }}, {{ hotel['city'] }}</a></li>
-            {% endfor %}
-        </ul>
     <div class="container-pictures">
-        <div class="city" onclick="location.href='/login'">
+        <div class="city" onclick="location.href='/hotels?city=Aberdeen'">
             <img src="static/images/aberdeen.jpg" alt="Aberdeen">
             <div class="overlay">Aberdeen</div>
         </div>
-        <div class="city" onclick="location.href='/login'">
+        <div class="city" onclick="location.href='/hotels?city=Belfast'">
             <img src="static/images/Belfast.jpg" alt="Belfast">
             <div class="overlay">Belfast</div>
         </div>        
-        <div class="city" onclick="location.href='/login'">
+        <div class="city" onclick="location.href='/hotels?city=Birmingham'">
             <img src="static/images/Birmingham.jpg" alt="Birmingham">
             <div class="overlay">Birmingham</div>
         </div>        
-        <div class="city" onclick="location.href='/login'">
+        <div class="city" onclick="location.href='/hotels?city=Bristol'">
             <img src="static/images/Bristol.jpg" alt="Bristol">
             <div class="overlay">Bristol</div>
         </div>        
-        <div class="city" onclick="location.href='/login'">
+        <div class="city" onclick="location.href='/hotels?city=Cardiff'">
             <img src="static/images/Cardiff.jpg" alt="Cardiff">
             <div class="overlay">Cardiff</div>
         </div>             
-        <div class="city" onclick="location.href='/login'">
+        <div class="city" onclick="location.href='/hotels?city=Edinburgh'">
             <img src="static/images/Edinburgh.jpg" alt="Edinburgh">
             <div class="overlay">Edinburgh</div>
         </div>        
-        <div class="city" onclick="location.href='/login'">
+        <div class="city" onclick="location.href='/hotels?city=Glasgow'">
             <img src="static/images/Glasgow.jpg" alt="Glasgow">
             <div class="overlay">Glasgow</div>
         </div>        
-        <div class="city" onclick="location.href='/login'">
+        <div class="city" onclick="location.href='/hotels?city=London'">
             <img src="static/images/London.jpg" alt="London">
             <div class="overlay">London</div>
         </div>        
-        <div class="city" onclick="location.href='/login'">
+        <div class="city" onclick="location.href='/hotels?city=Manchester'">
             <img src="static/images/Manchester.jpg" alt="Manchester">
             <div class="overlay">Manchester</div>
         </div>        
-        <div class="city" onclick="location.href='/login'">
+        <div class="city" onclick="location.href='/hotels?city=New Castle'">
             <img src="static/images/New Castle.jpg" alt="New Castle">
             <div class="overlay">New Castle</div>
         </div>        
-        <div class="city" onclick="location.href='/login'">
+        <div class="city" onclick="location.href='/hotels?city=Norwich'">
             <img src="static/images/Norwich.jpg" alt="Norwich">
             <div class="overlay">Norwich</div>
         </div>        
-        <div class="city" onclick="location.href='/login'">
+        <div class="city" onclick="location.href='/hotels?city=Nottingham'">
             <img src="static/images/Nottingham.jpg" alt="Nottingham">
             <div class="overlay">Nottingham</div>
         </div>        
-        <div class="city" onclick="location.href='/login'">
+        <div class="city" onclick="location.href='/hotels?city=Oxford'">
             <img src="static/images/Oxford.jpg" alt="Oxford">
             <div class="overlay">Oxford</div>
         </div>        
-        <div class="city" onclick="location.href='/login'">
+        <div class="city" onclick="location.href='/hotels?city=Plymouth'">
             <img src="static/images/Plymouth.jpg" alt="Plymouth">
             <div class="overlay">Plymouth</div>
         </div>        
-        <div class="city" onclick="location.href='/login'">
+        <div class="city" onclick="location.href='/hotels?city=Swansea'">
             <img src="static/images/Swansea.jpg" alt="Swansea">
             <div class="overlay">Swansea</div>
         </div>        
-        <div class="city" onclick="location.href='/login'">
+        <div class="city" onclick="location.href='/hotels?city=Bournemouth'">
             <img src="static/images/Bournemouth.jpg" alt="Bournemouth">
             <div class="overlay">Bournemouth</div>
         </div>        
-        <div class="city" onclick="location.href='/login'">
+        <div class="city" onclick="location.href='/hotels?city=Kent'">
             <img src="static/images/Kent.jpg" alt="Kent">
             <div class="overlay">Kent</div>
         </div>
-        <div class="city" onclick="location.href='/login'">
+        <div class="city" onclick="location.href='/hotels?city=Dundee'">
             <img src="static/images/Dundee.jpg" alt="Dundee">
             <div class="overlay">Dundee</div>
         </div>        
-        <div class="city" onclick="location.href='/login'">
+        <div class="city" onclick="location.href='/hotels?city=Sheffield'">
             <img src="static/images/Sheffield.jpg" alt="Sheffield">
             <div class="overlay">Sheffield</div>
         </div>

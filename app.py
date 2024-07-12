@@ -29,18 +29,29 @@ app.secret_key = 'your_secret_key'
 @app.route('/')
 def index():
     city = request.args.get('city', '')
-
+    hotel_name = request.args.get('hotel_name', '')
+    
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-
+    
+    # Create the base query
+    query = "SELECT hotel_id, name, city FROM hotels WHERE 1=1"
+    
+    # Add conditions based on search criteria
     if city:
-        query = 'SELECT hotel_id, name, city FROM Hotels WHERE city LIKE %s'
-        cursor.execute(query, ('%' + city + '%',))
-    else:
-        query = 'SELECT hotel_id, name, city FROM Hotels'
-        cursor.execute(query)
-
+        query += " AND city LIKE %s"
+        city = "%" + city + "%"
+    
+    if hotel_name:
+        query += " AND name LIKE %s"
+        hotel_name = "%" + hotel_name + "%"
+    
+    # Create a tuple of the parameters
+    params = tuple(filter(None, [city, hotel_name]))
+    
+    cursor.execute(query, params)
     hotels = cursor.fetchall()
-    return render_template('home.html')
+    
+    return render_template('home.html', hotels=hotels)
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
