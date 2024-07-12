@@ -578,6 +578,35 @@ def add_room():
         room_type = request.form['room_type']
         max_guests = request.form['max_guests']
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        # Get the hotel's capacity
+        cursor.execute('SELECT capacity FROM Hotels WHERE hotel_id = %s', (hotel_id,))
+        hotel = cursor.fetchone()
+        hotel_capacity = hotel['capacity']
+        # Calculate the maximum allowed rooms of each type
+        max_standard_rooms = int(hotel_capacity * 0.30)
+        max_double_rooms = int(hotel_capacity * 0.40)
+        max_family_rooms = int(hotel_capacity * 0.20)
+        max_executive_suites = int(hotel_capacity * 0.10)
+        # Query the current distribution of room types in the hotel
+        cursor.execute('SELECT room_type, COUNT(*) as count FROM Rooms WHERE hotel_id = %s GROUP BY room_type', (hotel_id,))
+        current_rooms = cursor.fetchall()
+        room_counts = { 'Standard': 0, 'Double': 0, 'Family': 0, 'Executive': 0 }
+        for room in current_rooms:
+            room_counts[room['room_type']] = room['count']
+        # Check constraints
+        if room_type == 'Standard' and room_counts['Standard'] >= max_standard_rooms:
+            flash('Cannot add more Standard rooms. Limit reached.')
+            return redirect(url_for('add_room'))
+        elif room_type == 'Double' and room_counts['Double'] >= max_double_rooms:
+            flash('Cannot add more Double rooms. Limit reached.')
+            return redirect(url_for('add_room'))
+        elif room_type == 'Family' and room_counts['Family'] >= max_family_rooms:
+            flash('Cannot add more Family rooms. Limit reached.')
+            return redirect(url_for('add_room'))
+        elif room_type == 'Executive' and room_counts['Executive'] >= max_executive_suites:
+            flash('Cannot add more Executive suites. Limit reached.')
+            return redirect(url_for('add_room'))
+
         cursor.execute('INSERT INTO Rooms (hotel_id, status, features, room_type, max_guests) VALUES (%s, %s, %s, %s, %s)', 
                        (hotel_id, status, features, room_type, max_guests))
         mysql.connection.commit()
