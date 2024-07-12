@@ -10,6 +10,8 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from flask_login import login_required
 import bcrypt
+from werkzeug.security import generate_password_hash
+
 
 app = Flask(__name__)
 
@@ -412,7 +414,6 @@ def book_room(hotel_id):
 @app.route('/cancel_booking/<int:booking_id>', methods=['POST'])
 @login_required
 def cancel_booking(booking_id):
-    try:
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     
         # Fetch the booking details
@@ -456,11 +457,6 @@ def cancel_booking(booking_id):
         flash(f'Booking cancelled successfully. Cancellation charge: {currency} {cancellation_charge:.2f}')
     
         return redirect(url_for('my_bookings'))
-    except Exception as e:
-        # Log the error or print it for debugging
-        print(f"Error: {e}")
-        flash(f'An error occurred while cancelling the booking: {str(e)}')
-        return redirect(url_for('my_bookings'))
 
 
 
@@ -473,15 +469,6 @@ def my_bookings():
     bookings = cursor.fetchall()
     return render_template('my_bookings.html', bookings=bookings)
 
-
-@app.route('/update_room_status/<int:room_id>', methods=['POST'])
-@admin_required
-def update_room_status(room_id):
-    new_status = request.form['status']
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    cursor.execute('UPDATE Rooms SET status = %s WHERE room_id = %s', (new_status, room_id))
-    mysql.connection.commit()
-    return redirect(url_for('admin_dashboard'))
 
 @app.route('/admin_dashboard')
 @admin_required
@@ -496,29 +483,75 @@ def admin_dashboard():
     cursor.execute('SELECT * FROM Users')
     users = cursor.fetchall()
 
-    cursor.execute('SELECT * FROM Rooms')
-    rooms = cursor.fetchall()
+    #cursor.execute('SELECT * FROM Rooms')
+    #rooms = cursor.fetchall()
     
-    return render_template('admin_dashboard.html', hotels=hotels, bookings=bookings, users=users, rooms = rooms)
+    return render_template('admin_dashboard.html', hotels=hotels, bookings=bookings, users=users)
 
 
 @app.route('/add_hotel', methods=['GET', 'POST'])
 @admin_required
 def add_hotel():
-    if request.method == 'POST' and 'name' in request.form and 'city' in request.form and 'capacity' in request.form and 'peak_price' in request.form and 'off_peak_price' in request.form:
-        name = request.form['name']
-        city = request.form['city']
-        capacity = request.form['capacity']
-        peak_season_price = request.form['peak_price']
-        off_peak_season_price = request.form['off_peak_price']
-        
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        cursor.execute('INSERT INTO Hotels (name, city, capacity, peak_price, off_peak_price) VALUES (%s, %s, %s, %s, %s)', 
-                       (name, city, capacity, peak_season_price, off_peak_season_price))
-        mysql.connection.commit()
-        return redirect(url_for('admin_dashboard'))
+    if request.method == 'POST':
+            name = request.form.get('name')
+            city = request.form.get('city')
+            capacity = request.form.get('capacity')
+            peak_season_price = request.form.get('peak_price')
+            off_peak_season_price = request.form.get('off_peak_price')
+            
+            # Ensure no field is None
+            if None in [name, city, capacity, peak_season_price, off_peak_season_price]:
+                print("One or more form fields are missing.")
+                return render_template('add_hotel.html', error="Please fill out all fields")
+            
+            cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+            cursor.execute('INSERT INTO Hotels (name, city, capacity, peak_price, off_peak_price) VALUES (%s, %s, %s, %s, %s)', 
+                           (name, city, capacity, peak_season_price, off_peak_season_price))
+            mysql.connection.commit()
+            return redirect(url_for('admin_dashboard'))
     
     return render_template('add_hotel.html')
+
+@app.route('/delete_hotel/<int:hotel_id>')
+@admin_required
+def delete_hotel(hotel_id):
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("DELETE FROM hotels WHERE hotel_id = %s", (hotel_id,))
+    mysql.connection.commit()
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/modify_hotel/<int:hotel_id>', methods=['GET', 'POST'])
+def modify_hotel(hotel_id):
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("SELECT * FROM hotels WHERE hotel_id = %s", (hotel_id,))
+    mysql.connection.commit()
+    hotels = cursor.fetchall()
+    if request.method == 'GET':
+        for hotel in hotels:
+            if hotel['hotel_id'] == hotel_id:
+                return render_template('modify_hotel.html', hotel=hotel)
+        return 'Hotel not found', 404
+    elif request.method == 'POST':
+        for hotel in hotels:
+                name = request.form['name']
+                city = request.form['city']
+                capacity = int(request.form['capacity'])
+                off_peak_price = float(request.form['off_peak_price'])
+                peak_price = float(request.form['peak_price'])
+                cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+                cursor.execute("UPDATE hotels SET name = %s, city= %s, capacity= %s, off_peak_price = %s, peak_price=%s  WHERE hotel_id = %s", (name, city , capacity, off_peak_price, peak_price, hotel_id,))
+                mysql.connection.commit()
+                return redirect(url_for('admin_dashboard'))
+        return 'Hotel not found', 404
+
+@app.route('/delete_user/<int:user_id>')
+@admin_required
+def delete_user(user_id):
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("DELETE FROM users WHERE user_id = %s", (user_id,))
+    mysql.connection.commit()
+    return redirect(url_for('admin_dashboard'))
+
 
 @app.route('/add_room', methods=['GET', 'POST'])
 @admin_required
@@ -539,6 +572,33 @@ def add_room():
     hotels = cursor.fetchall()
     
     return render_template('add_room.html', hotels=hotels)
+
+
+@app.route('/modify_users', methods=['GET', 'POST'])
+def modify_users():
+    if 'username' not in session or not session.get('is_admin'):
+        flash('You must be logged in as an admin to access this page.')
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        user_id = request.form['user_id']
+        new_password = request.form['new_password']
+
+        if user_id and new_password:
+            hashed_password = generate_password_hash(new_password)
+            cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+            cursor.execute("UPDATE users SET password = %s WHERE user_id = %s", (hashed_password, user_id))
+            mysql.connection.commit()
+            cursor.close()
+            flash('Password updated successfully.')
+            return redirect(url_for('admin_dashboard'))
+
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("SELECT user_id, username, email FROM users")
+    users = cursor.fetchall()
+    cursor.close()
+
+    return render_template('modify_users.html', users=users)
 
 @app.route('/generate_reports')
 @admin_required
