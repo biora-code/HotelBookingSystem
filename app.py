@@ -30,26 +30,48 @@ app.secret_key = 'your_secret_key'
 def index():
     city = request.args.get('city', '')
     hotel_name = request.args.get('hotel_name', '')
+    min_price = request.args.get('min_price', type=int)
+    max_price = request.args.get('max_price', type=int)
+
+    # Handle invalid price range
+    if min_price is not None and max_price is not None and max_price < min_price:
+        flash('Max price cannot be lower than min price', 'error')
+        return redirect(url_for('hotels'))
     
+    # Connect to your database
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+    
+    # Determine the current month
+    current_month = datetime.now().month
     
     # Create the base query
-    query = "SELECT hotel_id, name, city FROM hotels WHERE 1=1"
+    query = "SELECT hotel_id, name, city, CASE WHEN %s THEN peak_price ELSE off_peak_price END AS price FROM hotels WHERE 1=1"
+    
+    # Determine if it's peak season
+    is_peak = current_month in [1, 5, 6, 7, 8, 12]
     
     # Add conditions based on search criteria
+    params = [is_peak]
     if city:
         query += " AND city LIKE %s"
-        city = "%" + city + "%"
+        params.append("%" + city + "%")
     
     if hotel_name:
         query += " AND name LIKE %s"
-        hotel_name = "%" + hotel_name + "%"
+        params.append("%" + hotel_name + "%")
     
-    # Create a tuple of the parameters
-    params = tuple(filter(None, [city, hotel_name]))
+    if min_price is not None:
+        query += " AND price >= %s"
+        params.append(min_price)
     
-    cursor.execute(query, params)
+    if max_price is not None:
+        query += " AND price <= %s"
+        params.append(max_price)
+    
+    cursor.execute(query, tuple(params))
     hotels = cursor.fetchall()
+    
     
     return render_template('home.html', hotels=hotels)
 
@@ -77,7 +99,8 @@ def register():
         else:
             cursor.execute('INSERT INTO Users (username, password, email) VALUES (%s, %s, %s)', (username, hashed_password, email))
             mysql.connection.commit()
-            return 'You have successfully registered!'
+            flash(f'You have successfully registered!')
+            return redirect(url_for('hotels'))
 
     return render_template('register.html')
 
@@ -112,7 +135,7 @@ def login():
                 return redirect(url_for('hotels'))
             else:
                 # Passwords do not match
-                return 'Incorrect username/password!'
+                flash(f'Incorrect username/password!') 
 
         else:
             return 'User not found!'
@@ -151,9 +174,10 @@ def update_password():
                 new_password_hashed = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt())
                 cursor.execute('UPDATE Users SET password = %s WHERE user_id = %s', (new_password_hashed.decode('utf-8'), session['user_id']))
                 mysql.connection.commit()
-                return 'Password updated successfully!'
+                flash(f'Password updated successfully!')
+                return redirect(url_for('hotels'))
             else:
-                return  'Incorrect old password!'
+                flash(f'Incorrect username/password')
         
         return render_template('update_password.html')
     

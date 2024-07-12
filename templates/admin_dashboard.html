@@ -4,100 +4,122 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/admin_dashboard.css') }}">
 </head>
 <body>
-    <h2>Welcome to Admin Dashboard</h2>
-    <p><a href="{{ url_for('update_password') }}">Update My Password</a></p>
-    <p><a href="{{ url_for('logout') }}">Logout</a></p>
-    
-    <h3>Hotels</h3>
-    <ul>
-        {% for hotel in hotels %}
-            <li>
-                {{ hotel['name'] }}, City: {{ hotel['city'] }}, Capacity: {{ hotel['capacity'] }}, Off Peak Season Price: {{ hotel['off_peak_price'] }}, Peak Season Price: {{ hotel['peak_price'] }}
-                <button onclick="confirmDeleteHotel({{ hotel['hotel_id'] }})">Delete Hotel</button>
-                <a href="{{ url_for('modify_hotel', hotel_id=hotel['hotel_id']) }}">Modify Hotel Data</a>
-            </li>
-        {% endfor %}
-    </ul>
-    <a href="{{ url_for('add_hotel') }}">Add Hotel</a>
-    
-    <h3>Bookings</h3>
-    <ul>
-        {% for booking in bookings %}
-            <li>
-                Booking ID: {{ booking['booking_id'] }},
-                User ID: {{ booking['user_id'] }},
-                Room ID: {{ booking['room_id'] }},
-                Check-in: {{ booking['check_in_date'] }},
-                Check-out: {{ booking['check_out_date'] }},
-                Status: {{ booking['status'] }}
-                {% if booking['status'] == 'booked' %}
-                    <i>Room {{ booking['room_id'] }} is booked.</i>
-                    <i>It will be available on <span id="nextDay{{ booking['booking_id'] }}"></span>.</i>
-                    <script>
-                        function confirmDeleteHotel(hotelId) {
-                            if (confirm("Are you sure you want to delete this hotel?")) {
-                            window.location.href = "/delete_hotel/" + hotelId;}};
-                        function confirmDeleteUser(userId) {
-                            if (confirm("Are you sure you want to remove this user?")) {
-                                window.location.href = "/delete_user/" + userId;}};
-                        function confirmDeleteBoooking(bookingId) {
-                            if (confirm("Are you sure you want to remove this booking?")) {
-                                window.location.href = "/delete_booking/" + bookingId;}};
-                        function confirmDeleteRoom(roomId) {
-                            if (confirm("Are you sure you want to delete this room?")) {
-                                window.location.href = "/delete_room/" + roomId;}};
-                        // Inline JavaScript to call calculateNextDay function
-                        function calculateNextDay(checkOutDate) {
-                            var nextDay = new Date(checkOutDate);
-                            nextDay.setDate(nextDay.getDate() + 1);
-                            return nextDay.toISOString().slice(0, 10);  // Format as YYYY-MM-DD
-                        }
-                        document.getElementById('nextDay{{ booking['booking_id'] }}').textContent = calculateNextDay('{{ booking['check_out_date'] | replace("'", "\\'") }}');
-                    </script>
-                {% else %}
-                    <i>This boooking is {{ booking['status'] }}. </i>
-                {% endif %}
-                <button onclick="confirmDeleteBoooking({{ booking['booking_id'] }})">Delete Boooking</button>
-            </li>
-        {% endfor %}
-    </ul>
-
-    <h3>Rooms</h3>
-    <ul>
-        {% for room in rooms %}
-            <li>
-                Room ID: {{ room['room_id'] }},
-                Hotel ID: {{ room['hotel_id'] }},
-                Room Type: {{ room['room_type'] }},
-                Status: <b>{{ room['status'] }}</b>,
-                Features: {{ room['features'] }},
-                Maximum number of guests: {{ room['max_guests'] }}
-                <a href="{{ url_for('change_room_status', room_id=room['room_id']) }}">Change Room Status</a>
-                <button onclick="confirmDeleteRoom({{ room['room_id'] }})">Remove Room</button>
-            </li>
-        {% endfor %}
-    </ul>
-    <a href="{{ url_for('add_room') }}">Add Room</a>
-
-    <h3>Users</h3>
-    <ul>
-        {% for user in users %}
-            <li>User ID: {{ user['user_id'] }}, Username: {{ user['username'] }}, Email: {{ user['email'] }}</li>
-            <button onclick="confirmDeleteUser({{ user['user_id'] }})">Remove User</button>
-        {% endfor %}
-    </ul>
-    <a href="{{ url_for('modify_users') }}">Modify Users Password</a>
-
-    <h3>Conversion Rates</h3>
-    <ul>
-        {% for conversion_rate in conversion_rates %}
-            <li>Currency: {{ conversion_rate['currency'] }}, Rate: {{ conversion_rate['rate'] }}
-                <a href="{{ url_for('change_conversion_rate', currency=conversion_rate['currency']) }}">Change Conversion Rate</a>
-            </li>
-        {% endfor %}
-    </ul>
-    <p><a href="{{ url_for('generate_reports') }}"><i>Taking a look at some reports</i></a></p>
+    <div class="container">
+        <h2>Welcome to Admin Dashboard</h2>
+        <p class="actions"><a class="link" href="{{ url_for('update_password') }}">Update My Password</a> or <a class="link" href="{{ url_for('logout') }}">Logout</a></p>
+        
+        <div class="section">
+            <h3>Hotels</h3>
+            <ul class="list">
+                {% for hotel in hotels %}
+                    <li class="list-item">
+                        {{ hotel['name'] }}, City: {{ hotel['city'] }}, Capacity: {{ hotel['capacity'] }}, Off Peak Season Price: {{ hotel['off_peak_price'] }}, Peak Season Price: {{ hotel['peak_price'] }}
+                        <button class="button delete-button" onclick="confirmDeleteHotel({{ hotel['hotel_id'] }})">Delete Hotel</button>
+                        <a class="button modify-button" href="{{ url_for('modify_hotel', hotel_id=hotel['hotel_id']) }}">Modify Hotel Data</a>
+                    </li>
+                {% endfor %}
+            </ul>
+            <a class="button add-button" href="{{ url_for('add_hotel') }}">Add Hotel</a>
+        </div>
+        
+        <div class="section">
+            <h3>Bookings</h3>
+            <ul class="list">
+                {% for booking in bookings %}
+                    <li class="list-item">
+                        Booking ID: {{ booking['booking_id'] }},
+                        User ID: {{ booking['user_id'] }},
+                        Room ID: {{ booking['room_id'] }},
+                        Check-in: {{ booking['check_in_date'] }},
+                        Check-out: {{ booking['check_out_date'] }},
+                        Status: {{ booking['status'] }}
+                        {% if booking['status'] == 'booked' %}
+                            <i>Room {{ booking['room_id'] }} is booked.</i>
+                            <i>It will be available on <span id="nextDay{{ booking['booking_id'] }}"></span>.</i>
+                            <script>
+                                function confirmDeleteHotel(hotelId) {
+                                    if (confirm("Are you sure you want to delete this hotel?")) {
+                                        window.location.href = "/delete_hotel/" + hotelId;
+                                    }
+                                };
+                                function confirmDeleteUser(userId) {
+                                    if (confirm("Are you sure you want to remove this user?")) {
+                                        window.location.href = "/delete_user/" + userId;
+                                    }
+                                };
+                                function confirmDeleteBoooking(bookingId) {
+                                    if (confirm("Are you sure you want to remove this booking?")) {
+                                        window.location.href = "/delete_booking/" + bookingId;
+                                    }
+                                };
+                                function confirmDeleteRoom(roomId) {
+                                    if (confirm("Are you sure you want to delete this room?")) {
+                                        window.location.href = "/delete_room/" + roomId;
+                                    }
+                                };
+                                // Inline JavaScript to call calculateNextDay function
+                                function calculateNextDay(checkOutDate) {
+                                    var nextDay = new Date(checkOutDate);
+                                    nextDay.setDate(nextDay.getDate() + 1);
+                                    return nextDay.toISOString().slice(0, 10);  // Format as YYYY-MM-DD
+                                }
+                                document.getElementById('nextDay{{ booking['booking_id'] }}').textContent = calculateNextDay('{{ booking['check_out_date'] | replace("'", "\\'") }}');
+                            </script>
+                        {% else %}
+                            <i>This booking is {{ booking['status'] }}. </i>
+                        {% endif %}
+                        <button class="button delete-button" onclick="confirmDeleteBoooking({{ booking['booking_id'] }})">Delete Booking</button>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+        
+        <div class="section">
+            <h3>Rooms</h3>
+            <ul class="list">
+                {% for room in rooms %}
+                    <li class="list-item">
+                        Room ID: {{ room['room_id'] }},
+                        Hotel ID: {{ room['hotel_id'] }},
+                        Room Type: {{ room['room_type'] }},
+                        Status: <b>{{ room['status'] }}</b>,
+                        Features: {{ room['features'] }}
+                        <button class="button delete-button" onclick="confirmDeleteRoom({{ room['room_id'] }})">Remove Room</button>
+                        <a class="button modify-button" href="{{ url_for('change_room_status', room_id=room['room_id']) }}">Change Room Status</a>
+                    </li>
+                {% endfor %}
+            </ul>
+            <a class="button add-button" href="{{ url_for('add_room') }}">Add Room</a>
+        </div>
+        
+        <div class="section">
+            <h3>Users</h3>
+            <ul class="list">
+                {% for user in users %}
+                    <li class="list-item">
+                        User ID: {{ user['user_id'] }}, Username: {{ user['username'] }}, Email: {{ user['email'] }}
+                        <button class="button delete-button" onclick="confirmDeleteUser({{ user['user_id'] }})">Remove User</button>
+                    </li>
+                {% endfor %}
+            </ul>
+            <a class="button modify-button" href="{{ url_for('modify_users') }}">Modify Users Password</a>
+        </div>
+        
+        <div class="section">
+            <h3>Conversion Rates</h3>
+            <ul class="list">
+                {% for conversion_rate in conversion_rates %}
+                    <li class="list-item">
+                        Currency: {{ conversion_rate['currency'] }}, Rate: {{ conversion_rate['rate'] }}
+                        <a class="button modify-button" href="{{ url_for('change_conversion_rate', currency=conversion_rate['currency']) }}">Change Conversion Rate</a>
+                    </li>
+                {% endfor %}
+            </ul>
+            <p><a class="link" href="{{ url_for('generate_reports') }}"><i>Taking a look at some reports</i></a></p>
+        </div>
+    </div>
 </body>
 </html>

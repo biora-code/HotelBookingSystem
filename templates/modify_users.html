@@ -4,44 +4,46 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Modify Users</title>
-    <!--<link rel="stylesheet" href="{{ url_for('static', filename='form.css') }}">-->
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/modify_users.css') }}">
 </head>
 <body>
-    <h1>Modify Users</h1>
+    <div class="container">
+        <h1>Modify Users</h1>
 
-    <table>
-        <thead>
-            <tr>
-                <th>Username</th>
-                <th>Email</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for user in users %}
-            <tr>
-                <td>{{ user ['username']}}</td>
-                <td>{{ user ['email'] }}</td>
-                <td>
-                    <form action="{{ url_for('modify_users') }}" method="post">
-                        <input type="hidden" name="user_id" value="{{ user[0] }}">
-                        <input type="password" name="new_password" placeholder="New Password" required>
-                        <button type="submit">Update Password</button>
-                    </form>
-                </td>
-            </tr>
+        <table class="users-table">
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>{{ user['username'] }}</td>
+                    <td>{{ user['email'] }}</td>
+                    <td>
+                        <form action="{{ url_for('modify_users') }}" method="post">
+                            <input type="hidden" name="user_id" value="{{ user['user_id'] }}">
+                            <input type="text" name="new_password" placeholder="New Password" required><br>
+                            <button class="button update-button" type="submit">Update Password</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <ul class="messages">
+            {% for category, message in messages %}
+            <li class="{{ category }}">{{ message }}</li>
             {% endfor %}
-        </tbody>
-    </table>
-
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        <ul>
-        {% for category, message in messages %}
-          <li class="{{ category }}">{{ message }}</li>
-        {% endfor %}
         </ul>
-      {% endif %}
-    {% endwith %}
+        {% endif %}
+        {% endwith %}
+    </div>
 </body>
 </html>

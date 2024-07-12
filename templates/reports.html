@@ -4,29 +4,38 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Reports</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/admin_dashboard.css') }}">
 </head>
 <body>
-    <h2>Admin Reports</h2>
-    
-    <h3>Monthly Sales</h3>
-    <ul>
-        {% for report in monthly_sales %}
-            <li>Month: {{ report['month'] }}, Sales: £{{ report['sales'] }}</li>
-        {% endfor %}
-    </ul>
-    
-    <h3>Sales for Each Hotel</h3>
-    <ul>
-        {% for report in hotel_sales %}
-            <li>Hotel ID: {{ report['hotel_id'] }}, Sales: £{{ report['sales'] }}</li>
-        {% endfor %}
-    </ul>
-    
-    <h3>Top Customers</h3>
-    <ul>
-        {% for customer in top_customers %}
-            <li>User ID: {{ customer['user_id'] }}, Total Spent: £{{ customer['total_spent'] }}</li>
-        {% endfor %}
-    </ul>
+    <div class="container">
+        <h2>Admin Reports</h2>
+        
+        <div class="section">
+            <h3>Monthly Sales</h3>
+            <ul class="list">
+                {% for report in monthly_sales %}
+                    <li class="list-item">Month: {{ report['month'] }}, Sales: £{{ report['sales'] }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        
+        <div class="section">
+            <h3>Sales for Each Hotel</h3>
+            <ul class="list">
+                {% for report in hotel_sales %}
+                    <li class="list-item">Hotel ID: {{ report['hotel_id'] }}, Sales: £{{ report['sales'] }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        
+        <div class="section">
+            <h3>Top Customers</h3>
+            <ul class="list">
+                {% for customer in top_customers %}
+                    <li class="list-item">User ID: {{ customer['user_id'] }}, Total Spent: £{{ customer['total_spent'] }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
 </body>
 </html>

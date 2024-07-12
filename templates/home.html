@@ -15,9 +15,11 @@
     </div> 
     <br>       
     <!-- Search form -->
-        <form method="GET" action="{{ url_for('hotels') }}">
+        <form class="container" method="GET" action="{{ url_for('hotels') }}">
             <input type="text" name="city" placeholder="Search by city" value="{{ request.args.get('city', '') }}">
             <input type="text" name="hotel_name" placeholder="Search by hotel name" value="{{ request.args.get('hotel_name', '') }}">
+            <input type="number" name="min_price" placeholder="Minimum Price in GBP" value="{{ request.args.get('min_price', '') }}">
+            <input type="number" name="max_price" placeholder="Maximum Price in GBP" value="{{ request.args.get('max_price', '') }}">
             <button type="submit">Search</button>
         </form>
     <div class="container-pictures">
