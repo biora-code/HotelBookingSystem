@@ -518,6 +518,14 @@ def delete_hotel(hotel_id):
     mysql.connection.commit()
     return redirect(url_for('admin_dashboard'))
 
+@app.route('/delete_booking/<int:booking_id>')
+@admin_required
+def delete_boooking(booking_id):
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("DELETE FROM Bookings WHERE booking_id = %s", (booking_id,))
+    mysql.connection.commit()
+    return redirect(url_for('admin_dashboard'))
+
 @app.route('/modify_hotel/<int:hotel_id>', methods=['GET', 'POST'])
 def modify_hotel(hotel_id):
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
