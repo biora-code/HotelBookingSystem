@@ -10,7 +10,6 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from flask_login import login_required
 import bcrypt
-from werkzeug.security import generate_password_hash
 
 app = Flask(__name__)
 
@@ -32,25 +31,16 @@ def index():
     hotel_name = request.args.get('hotel_name', '')
     min_price = request.args.get('min_price', type=int)
     max_price = request.args.get('max_price', type=int)
-
     # Handle invalid price range
     if min_price is not None and max_price is not None and max_price < min_price:
         flash('Max price cannot be lower than min price', 'error')
         return redirect(url_for('hotels'))
-    
-    # Connect to your database
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-
-    
     # Determine the current month
     current_month = datetime.now().month
-    
-    # Create the base query
     query = "SELECT hotel_id, name, city, CASE WHEN %s THEN peak_price ELSE off_peak_price END AS price FROM hotels WHERE 1=1"
-    
     # Determine if it's peak season
     is_peak = current_month in [1, 5, 6, 7, 8, 12]
-    
     # Add conditions based on search criteria
     params = [is_peak]
     if city:
@@ -71,8 +61,6 @@ def index():
     
     cursor.execute(query, tuple(params))
     hotels = cursor.fetchall()
-    
-    
     return render_template('home.html', hotels=hotels)
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -81,21 +69,19 @@ def register():
         username = request.form['username']
         password = request.form['password']
         email = request.form['email']
-
         hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
         cursor.execute('SELECT * FROM Users WHERE username = %s', (username,))
         account = cursor.fetchone()
 
         if account:
-            return 'Account already exists!'
+            flash(f'Account already exists!') 
         elif not re.match(r'[^@]+@[^@]+\.[^@]+', email):
-            return 'Invalid email address!'
+            flash(f'Invalid email address!')
         elif not re.match(r'[A-Za-z0-9]+', username):
-            return 'Username must contain only characters and numbers!'
+            flash(f'Username must contain only characters and numbers!')
         elif not username or not password or not email:
-            return 'Please fill out the form!'
+            flash(f'Please fill out the form!')
         else:
             cursor.execute('INSERT INTO Users (username, password, email) VALUES (%s, %s, %s)', (username, hashed_password, email))
             mysql.connection.commit()
@@ -109,7 +95,6 @@ def register():
 def login():
     if 'loggedin' in session:
         return redirect(url_for('hotels'))
-
     if request.method == 'POST' and 'username' in request.form and 'password' in request.form:
         username = request.form['username']
         password = request.form['password']
@@ -117,14 +102,9 @@ def login():
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
         cursor.execute('SELECT * FROM Users WHERE username = %s', (username,))
         account = cursor.fetchone()
-        print(f"Account: {account}")
-
         if account:
             # Extract the hashed password from the database
             hashed_password_db = account['password'].encode('utf-8')
-            print(f"password: {password}")
-            print(f"Hashed password from DB: {hashed_password_db}")
-
             # Check if the hashed passwords match
             if bcrypt.checkpw(password.encode('utf-8'), hashed_password_db): #
                 # Passwords match
@@ -136,6 +116,7 @@ def login():
             else:
                 # Passwords do not match
                 flash(f'Incorrect username/password!') 
+                print("Incorrect username or pass")
 
         else:
             return 'User not found!'
@@ -165,19 +146,19 @@ def update_password():
         if request.method == 'POST' and 'old_password' in request.form and 'new_password' in request.form:
             old_password = request.form['old_password']
             new_password = request.form['new_password']
-
+            
             cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
             cursor.execute('SELECT * FROM Users WHERE user_id = %s', (session['user_id'],))
             account = cursor.fetchone()
-
+            
             if account and bcrypt.checkpw(old_password.encode('utf-8'), account['password'].encode('utf-8')):
                 new_password_hashed = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt())
                 cursor.execute('UPDATE Users SET password = %s WHERE user_id = %s', (new_password_hashed.decode('utf-8'), session['user_id']))
                 mysql.connection.commit()
-                flash(f'Password updated successfully!')
-                return redirect(url_for('hotels'))
+                return redirect(url_for('hotels')) 
+            
             else:
-                flash(f'Incorrect username/password')
+                flash('Incorrect old password', 'error')
         
         return render_template('update_password.html')
     
@@ -201,15 +182,9 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-@app.route('/admin')
-@admin_required
-def admin_dashboard_welcome():
-    return 'Welcome to the admin dashboard!'
-
 @app.route('/hotels')
 def hotels():
     city = request.args.get('city', '')
-
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
     if city:
@@ -242,24 +217,18 @@ def calculate_price(room_id, check_in_date, check_out_date, num_guests):
     # Fetch hotel details including peak and off-peak prices
     cursor.execute('SELECT * FROM Hotels WHERE hotel_id = %s', (hotel_id_for_selected_room,))
     hotel = cursor.fetchone()
-    
     current_month = datetime.now().month
-
     if current_month in [1, 5, 6, 7, 8, 12]:
         price = hotel['peak_price']
-
     else:
         price = hotel['off_peak_price']
 
     # Calculate the number of days of stay
     days_of_stay = (check_out_date - check_in_date).days
-
     # Ensure price is a float
     price = float(price) 
-    
     # Calculate the total price
     total_price = price * days_of_stay
-
 
     if room_type == 'Standard':
         total_price += price * num_guests
@@ -316,7 +285,7 @@ def calculate_price_in_currency(discounted_price, currency):
 def book_room(hotel_id):
     if 'loggedin' not in session:
         return redirect(url_for('login'))
-
+    
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute('SELECT * FROM Hotels WHERE hotel_id = %s', (hotel_id,))
     hotel = cursor.fetchone()
@@ -333,7 +302,6 @@ def book_room(hotel_id):
         check_out_date = datetime.strptime(request.form['check_out_date'], '%Y-%m-%d').date()
         num_guests = int(request.form['num_guests'])
         currency = request.form['currency']
-
         cursor.execute('SELECT max_guests, status FROM Rooms WHERE room_id = %s', (room_id,))
         room = cursor.fetchone()
         max_guests = room['max_guests']
@@ -399,7 +367,6 @@ def book_room(hotel_id):
         # Fetch user details
         cursor.execute('SELECT username, email FROM Users WHERE user_id = %s', (user_id,))
         user = cursor.fetchone()
-
         cursor.execute(
             'INSERT INTO Bookings (user_id, room_id, check_in_date, check_out_date, total_price, currency) VALUES (%s, %s, %s, %s, %s, %s)', 
             (user_id, room_id, check_in_date, check_out_date, final_price, currency)
@@ -446,7 +413,6 @@ def book_room(hotel_id):
 @login_required
 def cancel_booking(booking_id):
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    
         # Fetch the booking details
         cursor.execute('SELECT room_id, booking_date, total_price, currency FROM Bookings WHERE booking_id = %s AND user_id = %s', (booking_id, session['user_id']))
         booking = cursor.fetchone()
@@ -458,11 +424,9 @@ def cancel_booking(booking_id):
         booking_date = booking['booking_date'].date()
         booking_price = booking['total_price']
         currency = booking['currency']
-    
         # Calculate the number of days between today and the booking date
         today = datetime.today().date()
         days_until_booking = (booking_date - today).days
-    
         # Determine cancellation charges
         if days_until_booking > 60:
             cancellation_charge = Decimal(0)
@@ -482,8 +446,6 @@ def cancel_booking(booking_id):
         
         # Update the room status to 'available'
         cursor.execute('UPDATE Rooms SET status = %s WHERE room_id = %s', ('available', room_id))
-
-
         mysql.connection.commit()
         flash(f'Booking cancelled successfully. Cancellation charge: {currency} {cancellation_charge:.2f}')
     
@@ -503,10 +465,9 @@ def my_bookings():
 @admin_required
 def admin_dashboard():
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-
     cursor.execute('SELECT * FROM Hotels')
     hotels = cursor.fetchall()
-    
+
     cursor.execute('SELECT * FROM Bookings')
     bookings = cursor.fetchall()
     
@@ -520,7 +481,6 @@ def admin_dashboard():
     conversion_rates = cursor.fetchall()
 
     return render_template('admin_dashboard.html', hotels=hotels, bookings=bookings, users=users, rooms = rooms, conversion_rates = conversion_rates)
-
 
 @app.route('/add_hotel', methods=['GET', 'POST'])
 @admin_required
@@ -536,7 +496,6 @@ def add_hotel():
             if None in [name, city, capacity, peak_season_price, off_peak_season_price]:
                 print("One or more form fields are missing.")
                 return render_template('add_hotel.html', error="Please fill out all fields")
-            
             cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
             cursor.execute('INSERT INTO Hotels (name, city, capacity, peak_price, off_peak_price) VALUES (%s, %s, %s, %s, %s)', 
                            (name, city, capacity, peak_season_price, off_peak_season_price))
@@ -706,12 +665,11 @@ def modify_users():
         new_password = request.form['new_password']
 
         if user_id and new_password:
-            hashed_password = generate_password_hash(new_password)
+            hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt())
             cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
             cursor.execute("UPDATE users SET password = %s WHERE user_id = %s", (hashed_password, user_id))
             mysql.connection.commit()
             cursor.close()
-            flash('Password updated successfully.')
             return redirect(url_for('admin_dashboard'))
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
@@ -725,11 +683,9 @@ def modify_users():
 @admin_required
 def generate_reports():
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    
     # Monthly Sales
     cursor.execute('SELECT DATE_FORMAT(booking_date, "%Y-%m") AS month, SUM(total_price) AS sales FROM Bookings GROUP BY month')
     monthly_sales = cursor.fetchall()
-    
     # Sales for Each Hotel
     cursor.execute('''
         SELECT Rooms.hotel_id, SUM(Bookings.total_price) AS sales
@@ -738,7 +694,6 @@ def generate_reports():
         GROUP BY Rooms.hotel_id
     ''')
     hotel_sales = cursor.fetchall()
-    
     # Top Customers
     cursor.execute('SELECT user_id, SUM(total_price) AS total_spent FROM Bookings GROUP BY user_id ORDER BY total_spent DESC LIMIT 5')
     top_customers = cursor.fetchall()

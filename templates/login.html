@@ -19,6 +19,15 @@
             </div>
             <br>
             <button type="submit">Login</button>
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                <ul class="flashes">
+                    {% for message in messages %}
+                        <li>{{ message }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            {% endwith %}
             <p><i>No account? Please <a href="/register">register here</a> to book!</i></p>
             <p><i>Are you an admin? <a href="/admin_dashboard">Go to Admin Dashboard</a></i></p>
         </form>

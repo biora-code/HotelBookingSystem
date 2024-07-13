@@ -14,7 +14,6 @@
         </a>
     </div> 
     <br>       
-    <!-- Search form -->
         <form class="container" method="GET" action="{{ url_for('hotels') }}">
             <input type="text" name="city" placeholder="Search by city" value="{{ request.args.get('city', '') }}">
             <input type="text" name="hotel_name" placeholder="Search by hotel name" value="{{ request.args.get('hotel_name', '') }}">
