@@ -13,12 +13,6 @@
         <p>Capacity: {{ hotel['capacity'] }}</p>
         <p>Peak Season Price: £{{ hotel['peak_price'] }}</p>
         <p>Off Peak Season Price: £{{ hotel['off_peak_price'] }}</p>
-        <h3>Rooms:</h3>
-        <ul>
-            {% for room in rooms %}
-                <li>{{ room['features'] }} -  Price: £{{ room['price'] }}</li>
-            {% endfor %}
-        </ul>
         <a href="{{ url_for('book_room', hotel_id=hotel['hotel_id']) }}" class="btn">Book a Room</a>
     </div>
 </body>

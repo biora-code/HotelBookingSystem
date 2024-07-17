@@ -68,6 +68,8 @@
         {% else %}
             <p>No bookings found.</p>
         {% endif %}
+        <p><a href="{{ url_for('update_password') }}" class="btn">Update Password</a>&nbsp;&nbsp;&nbsp;&nbsp;
+        <a href="{{ url_for('logout') }}" class="btn btn-outline">Logout</a></p>&nbsp;&nbsp;&nbsp;&nbsp;
         <p><i>Please be aware that after 3 hours of cancelling, the cancelled bookings will disappear from your list. Thank you!</i></p>
     </div>
 </body>

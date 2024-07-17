@@ -17,7 +17,7 @@ app = Flask(__name__)
 # MySQL configurations
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = 'MuShIPuShIMjAu890@?_!'
+app.config['MYSQL_PASSWORD'] = 'MuShIPuShIMjAu890@?_!' #put your database password here
 app.config['MYSQL_DB'] = 'WHBookingSystem'
 
 mysql = MySQL(app)
@@ -85,7 +85,6 @@ def register():
         else:
             cursor.execute('INSERT INTO Users (username, password, email) VALUES (%s, %s, %s)', (username, hashed_password, email))
             mysql.connection.commit()
-            flash(f'You have successfully registered!')
             return redirect(url_for('hotels'))
 
     return render_template('register.html')
@@ -111,12 +110,17 @@ def login():
                 session['loggedin'] = True
                 session['user_id'] = account['user_id']
                 session['username'] = account['username']
-                session['is_admin'] = account['is_admin']
-                return redirect(url_for('hotels'))
+                if account['is_admin'] == False:
+                    return redirect(url_for('hotels'))
+                else:
+                    return redirect(url_for('admin_dashboard'))
+
+
             else:
                 # Passwords do not match
                 flash(f'Incorrect username/password!') 
                 print("Incorrect username or pass")
+
 
         else:
             return 'User not found!'
