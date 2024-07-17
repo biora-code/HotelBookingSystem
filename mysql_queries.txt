@@ -1,0 +1,77 @@
+CREATE DATABASE WHBookingSystem;
+
+USE WHBookingSystem;
+
+CREATE TABLE Users (
+    user_id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    password VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    is_admin BOOLEAN DEFAULT FALSE
+);
+
+INSERT INTO Users (username, password, email, is_admin) VALUES ('user_admin', 'user_admin', 'user_admin@email.com', TRUE);
+
+CREATE TABLE Hotels (
+    hotel_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    city VARCHAR(100) NOT NULL,
+    capacity INT NOT NULL,
+    peak_price DECIMAL(10, 2) NOT NULL,
+    off_peak_price DECIMAL(10, 2) NOT NULL
+);
+
+INSERT INTO Hotels (name, city, capacity, peak_price, off_peak_price) VALUES 
+('Hotel Aberdeen', 'Aberdeen', 100, 150, 75),
+('Hotel Belfast', 'Belfast', 90, 140, 75),
+('Hotel Birmingham', 'Birmingham', 120, 160, 80),
+('Hotel Bristol', 'Bristol', 110, 150, 75),
+('Hotel Cardiff', 'Cardiff', 100, 140, 75),
+('Hotel Edinburgh', 'Edinburgh', 130, 170, 85),
+('Hotel Glosgow', 'Glasgow', 150, 160, 80),
+('Hotel London', 'London', 170, 210, 105),
+('Hotel Manchester', 'Manchester', 160, 190, 95),
+('Hotel New Castle', 'New Castle', 100, 130, 75),
+('Hotel Norwich', 'Norwich', 100, 140, 75),
+('Hotel Nottinggham', 'Nottinggham', 120, 140, 75),
+('Hotel Oxford', 'Oxford', 100, 190, 95),
+('Hotel Plymouth', 'Plymouth', 90, 190, 95),
+('Hotel Swansea', 'Swansea', 80, 140, 75),
+('Hotel Bournemouth', 'Bournemouth', 100, 140, 75),
+('Hotel Kent', 'Kent', 110, 150, 85),
+('Hotel Dundee', 'Dundee', 100, 140, 80),
+('Hotel Sheffield', 'Sheffield', 90, 120, 75);
+
+
+
+CREATE TABLE Rooms (
+    room_id INT AUTO_INCREMENT PRIMARY KEY,
+    hotel_id INT,
+    room_type VARCHAR(50),
+    features TEXT,
+    status VARCHAR(50),
+    max_guests INT,
+    FOREIGN KEY (hotel_id) REFERENCES Hotels(hotel_id)
+);
+
+CREATE TABLE Bookings (
+    booking_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    room_id INT,
+    check_in_date DATE,
+    check_out_date DATE,
+    total_price DECIMAL(10, 2),
+    booking_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(20) DEFAULT 'booked',
+    cancellation_charge DECIMAL(10, 2),
+    currency VARCHAR(20),
+    FOREIGN KEY (user_id) REFERENCES Users(user_id),
+    FOREIGN KEY (room_id) REFERENCES Rooms(room_id)
+);
+
+CREATE TABLE conversion_rates (
+    rate DECIMAL(10, 2),
+    currency VARCHAR(50)
+);
+
+
