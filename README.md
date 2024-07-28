@@ -17,14 +17,13 @@ or prices, currencies, exchange rates, constraints and end user details
 4. Admin should be able to generate admin reports e.g., monthly sales, sales for each
 hotel, top customers, hotels making profit, hotels in loss, etc.
 
-Check-in date should be used to check whether it is peak-season or off-peak season.
+Check-in date is used to check whether it is peak-season or off-peak season.
 Each room has specific features such as Wifi, mini-bar, TV, breakfast etc.
-Advanced booking discount should be checked and applied from the check-in date.
+Advanced booking discount is checked and applied from the check-in date.
 Booking cancellation before 60 days of booking date does not incur cancellation charges.
 Booking cancellation between 30 and 60 days of booking date will incur charges up to 40%
 of booking price. Within 30 days of booking date 80% of booking price will be charged. 
-Within 10 days of booking date 100% of booking price will be charged. You must implement
-handling of cancellation charges and manage it properly in your database.
+Within 10 days of booking date 100% of booking price will be charged.
 Each hotel has 4 types of rooms: 1. Standard room; 2. Double room; 3. Family room and 4.
 Executive suite. Each hotel has 30% standard room; 40% double rooms, 20% Family rooms
 and 10% Executive suite. A standard room can have 1 guest only. A double room is 20%
@@ -32,7 +31,7 @@ more price of a Standard room and can have 2 guests max. For second guest extra 
 Standard room price will also be charged. Family room is 50% more price of a Standard
 room and can accommodate a family of maximum 4 guests. Executive suite has 5 times the
 price of a standard room and there is no extra charge for an additional guest.
-Admin user should be able to set as well as check the status of a selected room i.e., what is
+Admin user is to set as well as check the status of a selected room i.e., what is
 the current status of the room e.g., Available (i.e., room is available for booking), Booked (It
 is currently booked but show the date when will it be available), Unavailable due to
 maintenance.
